@@ -21,13 +21,10 @@ namespace NebulaRelay.Editor
 
         private static void OnEditorReady()
         {
-            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating || EditorApplication.isPlaying)
             {
-                EditorApplication.delayCall += OnEditorReady;
                 return;
             }
-
-            BuildAllScenes();
         }
 
         [MenuItem("Nebula Relay/Build All 3 Levels & Main Menu", priority = 1)]

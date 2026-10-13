@@ -68,6 +68,7 @@ namespace NebulaRelay.Core
         public RingManager Rings => ringManager;
         public RelayStation Relay => relayStation;
         public CapsuleLauncher Launcher => launcher;
+        public string CurrentObjectiveText => GetObjectiveText();
 
         // Banner Alert System
         public string CurrentAlertMessage { get; private set; } = "";

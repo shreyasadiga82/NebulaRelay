@@ -28,6 +28,8 @@ namespace NebulaRelay.UI
         public const int FontModalTitle = 32;
         public const int FontMenuMainTitle = 64;
 
+        public static float CurrentScale => GetScale();
+
         /// <summary>
         /// Calculates the GUI scale factor for the current screen size.
         /// scale = Mathf.Min(Screen.width / 1280f, Screen.height / 720f), clamped to 0.5..3.0.

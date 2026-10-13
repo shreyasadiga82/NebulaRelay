@@ -152,6 +152,7 @@ namespace NebulaRelay.Effects
             if (!SettingsManager.CountdownAudioEnabled) return;
             PlaySFX(urgent ? urgentCountdownClip : warningClip, 0.9f);
         }
+        public void PlayWarning() => PlaySFX(warningClip, 0.75f);
         public void PlayFailure() => PlaySFX(failureClip, 0.95f);
         public void PlayVictory() => PlaySFX(victoryClip, 1.0f);
         public void PlayButtonClick() => PlayUI(clickClip, 0.7f);

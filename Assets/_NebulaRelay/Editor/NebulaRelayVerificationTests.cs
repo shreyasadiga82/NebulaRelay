@@ -12,7 +12,7 @@ namespace NebulaRelay.Editor
     /// NebulaRelayVerificationTests runs automated verification checks on all core math,
     /// physics assumptions, ring ordering, relay activation, battery rules, scene camera sizes,
     /// prefab sizing, zero-override scene checks, UI scaling integrity, and the 12 Prompt Acceptance Tests.
-    /// Can be executed from the top menu: Nebula Relay > Run All 32 Verification Tests.
+    /// Can be executed from the top menu: Drift Core > Run All 32 Verification Tests.
     /// </summary>
     [InitializeOnLoad]
     public static class NebulaRelayVerificationTests
@@ -22,7 +22,7 @@ namespace NebulaRelay.Editor
             EditorApplication.delayCall += RunAllTests;
         }
 
-        [MenuItem("Nebula Relay/Run All 32 Verification Tests", priority = 3)]
+        [MenuItem("Drift Core/Run All 32 Verification Tests", priority = 3)]
         public static void RunAllTests()
         {
             if (EditorApplication.isPlaying)
@@ -34,7 +34,7 @@ namespace NebulaRelay.Editor
             int total = 32;
 
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
-            Debug.Log("<b><color=#00E5FF>[NEBULA RELAY] STARTING AUTOMATED TEST SUITE (32 TESTS)</color></b>");
+            Debug.Log("<b><color=#00E5FF>[DRIFT CORE] STARTING AUTOMATED TEST SUITE (32 TESTS)</color></b>");
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
 
             // Test 1: Projectile Math - Zero Gravity Linear Prediction
@@ -684,7 +684,7 @@ namespace NebulaRelay.Editor
             }
 
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
-            Debug.Log($"<b><color=#29D878>[NEBULA RELAY] TEST SUITE RESULT: {passed}/{total} PASSED</color></b>");
+            Debug.Log($"<b><color=#29D878>[DRIFT CORE] TEST SUITE RESULT: {passed}/{total} PASSED</color></b>");
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
         }
 

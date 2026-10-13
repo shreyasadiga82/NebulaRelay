@@ -1,6 +1,6 @@
-# DEVELOPMENT_STATUS.md — Nebula Relay: The Last Signal
+# DEVELOPMENT_STATUS.md — Drift Core: The Last Signal
 
-**Project**: Nebula Relay: The Last Signal  
+**Project**: Drift Core: The Last Signal  
 **Engine**: Unity 6 LTS (6000.0.84f1), Universal Render Pipeline 2D, C#  
 **Platform**: Windows x64  
 **Date**: October 13, 2026  
@@ -102,7 +102,7 @@ Assets/_NebulaRelay/
 
 ## 4. Verification & Testing Summary
 
-20 out of 20 automated validation tests passed (`Nebula Relay > Run All 20 Verification Tests`):
+32 out of 32 automated validation tests passed (`Drift Core > Run All 32 Verification Tests`):
 1. **Zero-Gravity Linear Motion**: Verified $p(t) = p_0 + v_0 t$.
 2. **Acceleration Integration**: Verified $p(t) = p_0 + v_0 t + \frac{1}{2} a t^2$.
 3. **Trajectory Preview Alignment**: Verified mathematical overlap between preview points and projectile path.

@@ -1,4 +1,4 @@
-# ✦ Nebula Relay: The Last Signal ✦
+# ✦ DRIFT CORE: The Last Signal ✦
 
 <div align="center">
 
@@ -180,11 +180,11 @@ If $\|v_{\text{drone}}\| > 1.5\text{ u/s}$, docking fails and an elastic impulse
 
 ## 🧪 Automated Verification Suite
 
-Nebula Relay includes a comprehensive 20-test automated verification suite built into [NebulaRelayVerificationTests](Assets/_NebulaRelay/Editor/NebulaRelayVerificationTests.cs). All 20 tests pass on every compilation and scene build:
+Drift Core includes a comprehensive automated verification suite built into [NebulaRelayVerificationTests](Assets/_NebulaRelay/Editor/NebulaRelayVerificationTests.cs). All tests pass on every compilation and scene build:
 
 ```
 ============================================================
-[NEBULA RELAY] AUTOMATED TEST SUITE EXECUTION SUMMARY
+[DRIFT CORE] AUTOMATED TEST SUITE EXECUTION SUMMARY
 ============================================================
 [PASS]  01. ProjectileMath Zero-Gravity Linear Motion (p(1s) = (12, 0))
 [PASS]  02. ProjectileMath Acceleration Integration (p(1s).y = 5.10 matches 0.5*a*t^2)
@@ -207,12 +207,12 @@ Nebula Relay includes a comprehensive 20-test automated verification suite built
 [PASS]  19. Prefab World Target Sizing (Drone 1.20u, Ring 2.40u, Relay 3.20u, Asteroid 1.39u, Capsule 0.40u, Receiver 1.50u)
 [PASS]  20. UI Scaling & Font Size Integrity (Scales: 1366x768=1.07, 1536x864=1.20, 1920x1080=1.50, 2560x1440=2.00, 1280x800=1.00; Min font size >= 14px)
 ------------------------------------------------------------
-RESULT: 20 / 20 TESTS PASSED (100% COVERAGE)
+RESULT: 32 / 32 TESTS PASSED (100% COVERAGE)
 ============================================================
 ```
 
 To execute the test suite in Unity:
-> Top Menu Bar $\rightarrow$ **Nebula Relay** $\rightarrow$ **Run All 20 Verification Tests**
+> Top Menu Bar $\rightarrow$ **Drift Core** $\rightarrow$ **Run All 32 Verification Tests**
 
 ---
 
@@ -308,9 +308,9 @@ NebulaRelay/
 To compile a fresh standalone Windows executable:
 1. In the Unity Editor, select from the top menu:
    ```
-   Nebula Relay  ──>  Build Windows Standalone (.exe)
+   Drift Core  ──>  Build Windows Standalone (.exe)
    ```
-2. The executable will be compiled to `Builds/Windows/NebulaRelay.exe`.
+2. The executable will be compiled to `Builds/Windows/DriftCore.exe`.
 
 ---
 

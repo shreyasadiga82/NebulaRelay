@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: DefaultCompany
-  productName: NebulaRelay
+  productName: Drift Core
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -602,14 +602,14 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: NebulaRelay
+  metroPackageName: DriftCore
   metroPackageVersion: 
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
   metroCertificateIssuer: 
   metroCertificateNotAfter: 0000000000000000
-  metroApplicationDescription: NebulaRelay
+  metroApplicationDescription: Drift Core
   wsaImages: {}
   metroTileShortName: 
   metroTileShowName: 0
@@ -683,7 +683,7 @@ PlayerSettings:
   cloudProjectId: 3a602667-c4c2-4cb8-84c1-6e1a808e167d
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: NebulaRelay
+  projectName: Drift Core
   organizationId: shreyasadiga82
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0

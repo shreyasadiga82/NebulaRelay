@@ -229,7 +229,7 @@ namespace NebulaRelay.UI
 
             GUILayout.BeginArea(new Rect(posX + 36, posY + 32, totalW - 72, totalH - 64));
 
-            GUILayout.Label("NEBULA RELAY", titleMainStyle);
+            GUILayout.Label("DRIFT CORE", titleMainStyle);
             GUILayout.Space(8);
             GUILayout.Label("PRECISION COURIER  //  ORBITAL RECONSTRUCTION", subtitleStyle);
             GUILayout.Space(28);
@@ -280,7 +280,7 @@ namespace NebulaRelay.UI
             // Top Breadcrumb Header
             GUILayout.BeginHorizontal();
             GUIStyle headTitle = new GUIStyle(titleMainStyle) { fontSize = 28, alignment = TextAnchor.MiddleLeft };
-            GUILayout.Label("NEBULA RELAY  /  SELECT MISSION", headTitle, GUILayout.Height(38));
+            GUILayout.Label("DRIFT CORE  /  SELECT MISSION", headTitle, GUILayout.Height(38));
             GUILayout.FlexibleSpace();
             int totalRestored = GameManager.Instance != null ? GameManager.Instance.TotalRelaysRestored : 0;
             int maxR = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;

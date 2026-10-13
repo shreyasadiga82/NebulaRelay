@@ -13,7 +13,7 @@ namespace NebulaRelay.Editor
 {
     public static class NebulaSceneBuilder
     {
-        [MenuItem("Nebula Relay/Build All 5 Levels & Main Menu", priority = 1)]
+        [MenuItem("Drift Core/Build All 5 Levels & Main Menu", priority = 1)]
         public static void BuildAllScenes()
         {
             UpgradePrefabs();
@@ -27,10 +27,10 @@ namespace NebulaRelay.Editor
 
             // Re-open Level 1 as the active working scene
             EditorSceneManager.OpenScene("Assets/_NebulaRelay/Scenes/Level_01.unity");
-            Debug.Log("<color=#00FF66><b>[Nebula Relay] Calibrated Scales & Safe Scenes Generated! All 5 Levels and Main Menu constructed and registered in Build Settings.</b></color>");
+            Debug.Log("<color=#00FF66><b>[Drift Core] Calibrated Scales & Safe Scenes Generated! All 5 Levels and Main Menu constructed and registered in Build Settings.</b></color>");
         }
 
-        [MenuItem("Nebula Relay/Build Windows Standalone (.exe)", priority = 2)]
+        [MenuItem("Drift Core/Build Windows Standalone (.exe)", priority = 2)]
         public static void BuildWindowsExecutable()
         {
             BuildAllScenes();
@@ -41,7 +41,7 @@ namespace NebulaRelay.Editor
                 System.IO.Directory.CreateDirectory(buildDir);
             }
 
-            string exePath = $"{buildDir}/NebulaRelay.exe";
+            string exePath = $"{buildDir}/DriftCore.exe";
             string[] scenePaths = new string[]
             {
                 "Assets/_NebulaRelay/Scenes/MainMenu.unity",
@@ -60,15 +60,15 @@ namespace NebulaRelay.Editor
                 options = BuildOptions.None
             };
 
-            Debug.Log("[Nebula Relay] Starting Standalone Windows x64 build with 5 Sectors and Live Cosmic Motion...");
+            Debug.Log("[Drift Core] Starting Standalone Windows x64 build with 5 Sectors and Live Cosmic Motion...");
             var report = BuildPipeline.BuildPlayer(opt);
             if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
             {
-                Debug.Log($"<color=#00FF66><b>[Nebula Relay] Standalone Windows Build Succeeded! Executable: {exePath} ({report.summary.totalSize / 1024 / 1024} MB)</b></color>");
+                Debug.Log($"<color=#00FF66><b>[Drift Core] Standalone Windows Build Succeeded! Executable: {exePath} ({report.summary.totalSize / 1024 / 1024} MB)</b></color>");
             }
             else
             {
-                Debug.LogError($"[Nebula Relay] Build failed: {report.summary.result}");
+                Debug.LogError($"[Drift Core] Build failed: {report.summary.result}");
             }
         }
 

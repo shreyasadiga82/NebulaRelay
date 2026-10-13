@@ -13,7 +13,7 @@ namespace NebulaRelay.UI
         public const float RefWidth = 1280f;
         public const float RefHeight = 720f;
         public const float MinScaleClamp = 0.5f;
-        public const float MaxScaleClamp = 3.0f;
+        public const float MaxScaleClamp = 6.0f;
         public const int MinFontSize = 14;
 
         // Standardized font sizes in 1280x720 reference space

@@ -10,6 +10,7 @@ namespace NebulaRelay.UI
 {
     /// <summary>
     /// HUDController provides the cinematic neon sci-fi HUD matching the game reference designs.
+    /// Scaled via UIScale (1280x720 reference) for readability on laptops, 1080p, 1440p, 4K, and ultra-wides.
     /// Features top objective & relay cards, bottom telemetry dock (radial battery, speed dial,
     /// capsule status, next ring badge), and contextual popup cards (Slow Down, Low Battery, Relay Activated, Pause).
     /// </summary>
@@ -22,16 +23,18 @@ namespace NebulaRelay.UI
         [SerializeField] private Color amberNeon = new Color(1f, 0.75f, 0f, 1f);      // #FFBF00
         [SerializeField] private Color greenNeon = new Color(0.18f, 0.95f, 0.5f, 1f);  // #2EF280
         [SerializeField] private Color redDanger = new Color(1f, 0.22f, 0.32f, 1f);    // #FF3852
-        [SerializeField] private Color panelDark = new Color(0.03f, 0.05f, 0.1f, 0.88f); // #080D1A
+        [SerializeField] private Color panelDark = new Color(0.03f, 0.05f, 0.1f, 0.92f); // #080D1A
 
-        // GUI Styles
+        // GUI Styles (All font sizes in 1280x720 reference space >= 14)
         private GUIStyle panelStyle;
         private GUIStyle dockStyle;
         private GUIStyle titleHeaderStyle;
         private GUIStyle sectorSubStyle;
         private GUIStyle cardHeaderStyle;
         private GUIStyle cardBodyStyle;
+        private GUIStyle objectiveTextStyle;
         private GUIStyle valueBoldStyle;
+        private GUIStyle smallLabelStyle;
         private GUIStyle iconStyle;
         private GUIStyle buttonSciFiStyle;
         private GUIStyle pauseBtnStyle;
@@ -47,16 +50,16 @@ namespace NebulaRelay.UI
         private bool isPaused = false;
         private bool showSettings = false;
         private float masterVolume = 1.0f;
-        private float viewWidth = 1920f;
-        private float viewHeight = 1080f;
+        private float viewWidth = 1280f;
+        private float viewHeight = 720f;
 
         private void InitStyles()
         {
             if (isStylesInit) return;
 
             whiteTex = MakeTex(2, 2, Color.white);
-            panelTex = MakeBorderedTex(64, 64, panelDark, new Color(0f, 0.6f, 0.85f, 0.4f), 1);
-            dockTex = MakeBorderedTex(64, 64, new Color(0.02f, 0.04f, 0.08f, 0.92f), new Color(0f, 0.75f, 1f, 0.35f), 1);
+            panelTex = MakeBorderedTex(64, 64, panelDark, new Color(0f, 0.6f, 0.85f, 0.45f), 1);
+            dockTex = MakeBorderedTex(64, 64, new Color(0.02f, 0.04f, 0.08f, 0.94f), new Color(0f, 0.75f, 1f, 0.4f), 1);
 
             panelStyle = new GUIStyle(GUI.skin.box);
             panelStyle.normal.background = panelTex;
@@ -68,35 +71,51 @@ namespace NebulaRelay.UI
 
             titleHeaderStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18,
+                fontSize = UIScale.FontHUDTitle, // 26
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = cyanNeon }
             };
 
             sectorSubStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11,
+                fontSize = UIScale.FontBodyDetail, // 16
                 fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.6f, 0.75f, 0.9f, 0.8f) }
+                normal = { textColor = new Color(0.6f, 0.75f, 0.9f, 0.9f) }
             };
 
             cardHeaderStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 12,
+                fontSize = UIScale.FontCardHeader, // 18
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = amberNeon }
             };
 
             cardBodyStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11,
+                fontSize = UIScale.FontBodyDetail, // 16
+                fontStyle = FontStyle.Bold,
                 wordWrap = true,
                 normal = { textColor = new Color(0.85f, 0.92f, 1f, 0.95f) }
             };
 
+            objectiveTextStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = UIScale.FontObjective, // 20
+                fontStyle = FontStyle.Bold,
+                wordWrap = true,
+                normal = { textColor = Color.white }
+            };
+
+            smallLabelStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = UIScale.FontSmallLabel, // 14
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = new Color(0.7f, 0.82f, 0.95f, 0.85f) }
+            };
+
             valueBoldStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13,
+                fontSize = UIScale.FontValue, // 22
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = Color.white }
@@ -104,7 +123,7 @@ namespace NebulaRelay.UI
 
             iconStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 14,
+                fontSize = UIScale.FontValue, // 22
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = cyanNeon }
@@ -112,25 +131,25 @@ namespace NebulaRelay.UI
 
             buttonSciFiStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 13,
+                fontSize = UIScale.FontButton, // 20
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.04f, 0.09f, 0.18f, 0.95f), cyanNeon, 1) },
-                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.4f, 0.7f, 0.95f), Color.white, 1) }
+                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.04f, 0.09f, 0.18f, 0.95f), cyanNeon, 2) },
+                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.45f, 0.75f, 0.95f), Color.white, 2) }
             };
 
             pauseBtnStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 14,
+                fontSize = UIScale.FontButton, // 20
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.03f, 0.06f, 0.12f, 0.9f), cyanNeon, 1) },
-                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.5f, 0.8f, 0.95f), Color.white, 1) }
+                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.03f, 0.06f, 0.12f, 0.92f), cyanNeon, 2) },
+                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.5f, 0.8f, 0.95f), Color.white, 2) }
             };
 
             modalTitleStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 20,
+                fontSize = UIScale.FontModalTitle, // 32
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = cyanNeon }
@@ -138,8 +157,9 @@ namespace NebulaRelay.UI
 
             modalBodyStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13,
+                fontSize = UIScale.FontCardHeader, // 18
                 alignment = TextAnchor.MiddleCenter,
+                wordWrap = true,
                 normal = { textColor = Color.white }
             };
 
@@ -148,7 +168,6 @@ namespace NebulaRelay.UI
 
         private void Update()
         {
-            // Toggle pause on Escape key
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 TogglePause();
@@ -168,16 +187,9 @@ namespace NebulaRelay.UI
             LevelManager lm = LevelManager.Instance;
             if (lm == null) return;
 
-            float targetWidth = 1920f;
-            float targetHeight = 1080f;
-            float scale = Mathf.Min((float)Screen.width / targetWidth, (float)Screen.height / targetHeight);
-            if (scale < 0.2f) scale = 0.2f;
-
-            viewWidth = Screen.width / scale;
-            viewHeight = Screen.height / scale;
-
-            Matrix4x4 origMatrix = GUI.matrix;
-            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
+            Matrix4x4 origMatrix = UIScale.BeginMatrix();
+            viewWidth = UIScale.GetViewWidth();
+            viewHeight = UIScale.GetViewHeight();
 
             try
             {
@@ -201,7 +213,7 @@ namespace NebulaRelay.UI
             }
             finally
             {
-                GUI.matrix = origMatrix;
+                UIScale.EndMatrix(origMatrix);
             }
         }
 
@@ -210,28 +222,28 @@ namespace NebulaRelay.UI
         // ==========================================
         private void DrawTopLeftMissionObjective(LevelManager lm)
         {
-            float width = 360f;
-            float height = 110f;
-            Rect cardRect = new Rect(24f, 20f, width, height);
+            float width = 450f;
+            float height = 145f;
+            Rect cardRect = new Rect(24f, 24f, width, height);
 
             GUI.Box(cardRect, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(cardRect.x + 16, cardRect.y + 10, cardRect.width - 32, cardRect.height - 20));
+            GUILayout.BeginArea(new Rect(cardRect.x + 18, cardRect.y + 12, cardRect.width - 36, cardRect.height - 24));
 
             // Title and Sector subheader
             GUILayout.Label("NEBULA RELAY", titleHeaderStyle);
             GUILayout.Label($"SECTOR 0{lm.LevelNumber} — {lm.LevelTitle.ToUpper()}", sectorSubStyle);
 
-            GUILayout.Space(4);
-
-            // Objective description
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("◉", iconStyle, GUILayout.Width(16));
-            GUILayout.Label(lm.CurrentObjectiveText, cardBodyStyle);
-            GUILayout.EndHorizontal();
-
             GUILayout.Space(6);
 
-            // Checkpoint indicators (e.g. 1/2 ● ○)
+            // Objective description (font size >= 20)
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("◉", iconStyle, GUILayout.Width(24));
+            GUILayout.Label(lm.CurrentObjectiveText, objectiveTextStyle);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(4);
+
+            // Checkpoint indicators (e.g. RINGS: ● ◎ ○)
             if (lm.Rings != null)
             {
                 GUILayout.BeginHorizontal();
@@ -248,7 +260,7 @@ namespace NebulaRelay.UI
 
                 GUIStyle dotStyle = new GUIStyle(cardBodyStyle)
                 {
-                    fontSize = 12,
+                    fontSize = UIScale.FontBodyDetail, // 16
                     fontStyle = FontStyle.Bold,
                     normal = { textColor = cyanNeon }
                 };
@@ -264,20 +276,19 @@ namespace NebulaRelay.UI
         // ==========================================
         private void DrawTopRightRelayIndicator(LevelManager lm)
         {
-            float cardW = 200f;
-            float cardH = 44f;
+            float cardW = 280f;
+            float cardH = 56f;
             float marginX = viewWidth - cardW - 24f;
-            Rect area = new Rect(marginX, 20f, cardW, cardH);
+            Rect area = new Rect(marginX, 24f, cardW, cardH);
 
             GUI.Box(area, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(area.x + 12, area.y + 6, area.width - 24, area.height - 12));
+            GUILayout.BeginArea(new Rect(area.x + 14, area.y + 8, area.width - 28, area.height - 16));
 
             GUILayout.BeginHorizontal();
 
-            // Relays count with indicators
             int restored = GameManager.Instance != null ? GameManager.Instance.TotalRelaysRestored : (lm.LevelNumber - 1);
             if (lm.State == LevelState.Completed) restored = lm.LevelNumber;
-            int total = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 3;
+            int total = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;
 
             string relayCircles = "";
             for (int i = 1; i <= total; i++)
@@ -287,7 +298,7 @@ namespace NebulaRelay.UI
 
             GUIStyle relayLabelStyle = new GUIStyle(cardBodyStyle)
             {
-                fontSize = 11,
+                fontSize = UIScale.FontCardHeader, // 18
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = greenNeon },
                 alignment = TextAnchor.MiddleLeft
@@ -297,7 +308,7 @@ namespace NebulaRelay.UI
             GUILayout.FlexibleSpace();
 
             // Pause button [ || ]
-            if (GUILayout.Button("❚❚", pauseBtnStyle, GUILayout.Width(32), GUILayout.Height(28)))
+            if (GUILayout.Button("❚❚", pauseBtnStyle, GUILayout.Width(44), GUILayout.Height(40)))
             {
                 TogglePause();
             }
@@ -311,28 +322,30 @@ namespace NebulaRelay.UI
         // ==========================================
         private void DrawBottomTelemetryDock(LevelManager lm)
         {
-            float dockW = Mathf.Min(820f, viewWidth - 48f);
-            float dockH = 68f;
+            float dockW = Mathf.Min(1040f, viewWidth - 48f);
+            float dockH = 92f;
             float dockX = (viewWidth - dockW) / 2f;
-            float dockY = viewHeight - dockH - 20f;
+            float dockY = viewHeight - dockH - 24f; // 24px safe margin from bottom edge
             Rect dockRect = new Rect(dockX, dockY, dockW, dockH);
 
             GUI.Box(dockRect, GUIContent.none, dockStyle);
 
-            // Sub-sections inside dock
-            float sectionW = (dockW - 32f) / 4f;
+            float totalInnerW = dockW - 32f;
+            float batW = 310f;
+            float remainingW = totalInnerW - batW;
+            float subW = remainingW / 3f;
 
-            // Section A: Battery
-            DrawDockBattery(new Rect(dockX + 16f, dockY + 12f, sectionW, dockH - 24f), lm);
+            // Section A: Battery (with 220x24 px bar)
+            DrawDockBattery(new Rect(dockX + 16f, dockY + 12f, batW, dockH - 24f), lm);
 
-            // Section B: Speed Dial
-            DrawDockSpeed(new Rect(dockX + 16f + sectionW, dockY + 12f, sectionW, dockH - 24f), lm);
+            // Section B: Speed Dial (turns red above 1.5 m/s)
+            DrawDockSpeed(new Rect(dockX + 16f + batW, dockY + 12f, subW, dockH - 24f), lm);
 
             // Section C: Capsule Status
-            DrawDockCapsule(new Rect(dockX + 16f + sectionW * 2f, dockY + 12f, sectionW, dockH - 24f), lm);
+            DrawDockCapsule(new Rect(dockX + 16f + batW + subW, dockY + 12f, subW, dockH - 24f), lm);
 
             // Section D: Next Ring
-            DrawDockRing(new Rect(dockX + 16f + sectionW * 3f, dockY + 12f, sectionW, dockH - 24f), lm);
+            DrawDockRing(new Rect(dockX + 16f + batW + subW * 2f, dockY + 12f, subW, dockH - 24f), lm);
         }
 
         private void DrawDockBattery(Rect r, LevelManager lm)
@@ -342,19 +355,19 @@ namespace NebulaRelay.UI
 
             GUIStyle pctStyle = new GUIStyle(valueBoldStyle)
             {
-                fontSize = 16,
+                fontSize = UIScale.FontValue, // 22
                 normal = { textColor = batCol }
             };
 
-            GUI.Label(new Rect(r.x, r.y, 50f, r.height), $"{(int)(pct * 100)}%", pctStyle);
+            GUI.Label(new Rect(r.x, r.y + 16f, 62f, 32f), $"{(int)(pct * 100)}%", pctStyle);
 
             // Label & Bar
-            GUIStyle subStyle = new GUIStyle(sectorSubStyle) { fontSize = 10 };
-            GUI.Label(new Rect(r.x + 55f, r.y - 2f, r.width - 55f, 16f), "BATTERY", subStyle);
+            GUI.Label(new Rect(r.x + 68f, r.y, r.width - 68f, 20f), "BATTERY SHIELD", smallLabelStyle);
 
-            Rect barBg = new Rect(r.x + 55f, r.y + 18f, r.width - 65f, 8f);
-            DrawRect(barBg, new Color(0.1f, 0.15f, 0.25f, 0.8f));
-            Rect barFill = new Rect(barBg.x, barBg.y, barBg.width * Mathf.Clamp01(pct), barBg.height);
+            // Battery bar at least 220x24 reference px
+            Rect barBg = new Rect(r.x + 68f, r.y + 24f, 224f, 24f);
+            DrawRect(barBg, new Color(0.08f, 0.12f, 0.2f, 0.9f));
+            Rect barFill = new Rect(barBg.x + 2f, barBg.y + 2f, (barBg.width - 4f) * Mathf.Clamp01(pct), barBg.height - 4f);
             DrawRect(barFill, batCol);
         }
 
@@ -366,21 +379,20 @@ namespace NebulaRelay.UI
                 speed = lm.Drone.GetComponent<Rigidbody2D>().linearVelocity.magnitude;
             }
 
-            GUIStyle lbl = new GUIStyle(sectorSubStyle) { fontSize = 10 };
-            GUI.Label(new Rect(r.x + 28f, r.y - 2f, r.width - 28f, 16f), "SPEED", lbl);
+            GUI.Label(new Rect(r.x + 36f, r.y, r.width - 36f, 20f), "VELOCITY", smallLabelStyle);
 
-            Color spdCol = (lm.Relay != null && lm.Relay.IsDroneInActivationRadius(lm.Drone.transform.position) && speed > lm.Relay.MaxSafeSpeed)
-                ? amberNeon : Color.white;
+            // Turns RED above the 1.5 u/s safe docking limit
+            Color spdCol = (speed > 1.5f) ? redDanger : greenNeon;
 
             GUIStyle spdVal = new GUIStyle(valueBoldStyle)
             {
-                fontSize = 15,
+                fontSize = UIScale.FontValue, // 22
                 normal = { textColor = spdCol }
             };
-            GUI.Label(new Rect(r.x + 28f, r.y + 14f, r.width - 28f, 22f), $"{speed:F1} m/s", spdVal);
+            GUI.Label(new Rect(r.x + 36f, r.y + 22f, r.width - 36f, 28f), $"{speed:F1} m/s", spdVal);
 
-            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = cyanNeon }, fontSize = 18 };
-            GUI.Label(new Rect(r.x, r.y + 4f, 26f, 30f), "◷", icon);
+            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = spdCol }, fontSize = 24 };
+            GUI.Label(new Rect(r.x, r.y + 12f, 32f, 36f), "◷", icon);
         }
 
         private void DrawDockCapsule(Rect r, LevelManager lm)
@@ -392,18 +404,17 @@ namespace NebulaRelay.UI
                 ready = launcher.CanFire;
             }
 
-            GUIStyle lbl = new GUIStyle(sectorSubStyle) { fontSize = 10 };
-            GUI.Label(new Rect(r.x + 30f, r.y - 2f, r.width - 30f, 16f), "CAPSULE", lbl);
+            GUI.Label(new Rect(r.x + 36f, r.y, r.width - 36f, 20f), "CAPSULE", smallLabelStyle);
 
             GUIStyle capVal = new GUIStyle(valueBoldStyle)
             {
-                fontSize = 14,
-                normal = { textColor = ready ? magentaNeon : new Color(0.5f, 0.5f, 0.6f) }
+                fontSize = UIScale.FontButton, // 20
+                normal = { textColor = ready ? magentaNeon : new Color(0.5f, 0.5f, 0.65f) }
             };
-            GUI.Label(new Rect(r.x + 30f, r.y + 14f, r.width - 30f, 22f), ready ? "READY" : "CHARGING", capVal);
+            GUI.Label(new Rect(r.x + 36f, r.y + 22f, r.width - 36f, 28f), ready ? "READY" : "CHARGING", capVal);
 
-            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = magentaNeon }, fontSize = 16 };
-            GUI.Label(new Rect(r.x, r.y + 4f, 26f, 30f), "⬢", icon);
+            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = magentaNeon }, fontSize = 22 };
+            GUI.Label(new Rect(r.x, r.y + 12f, 32f, 36f), "⬢", icon);
         }
 
         private void DrawDockRing(Rect r, LevelManager lm)
@@ -411,19 +422,18 @@ namespace NebulaRelay.UI
             int nextRing = lm.Rings != null ? lm.Rings.CurrentExpectedOrder : 1;
             bool allDone = lm.Rings != null && lm.Rings.AllRingsCompleted;
 
-            GUIStyle lbl = new GUIStyle(sectorSubStyle) { fontSize = 10 };
-            GUI.Label(new Rect(r.x + 30f, r.y - 2f, r.width - 30f, 16f), "NEXT RING", lbl);
+            GUI.Label(new Rect(r.x + 36f, r.y, r.width - 36f, 20f), "NEXT GATE", smallLabelStyle);
 
             GUIStyle ringVal = new GUIStyle(valueBoldStyle)
             {
-                fontSize = 15,
+                fontSize = UIScale.FontValue, // 22
                 normal = { textColor = allDone ? greenNeon : amberNeon }
             };
-            string text = allDone ? "CLEAR" : $"0{nextRing}";
-            GUI.Label(new Rect(r.x + 30f, r.y + 14f, r.width - 30f, 22f), text, ringVal);
+            string text = allDone ? "ALL CLEAR" : $"GATE 0{nextRing}";
+            GUI.Label(new Rect(r.x + 36f, r.y + 22f, r.width - 36f, 28f), text, ringVal);
 
-            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = amberNeon }, fontSize = 16 };
-            GUI.Label(new Rect(r.x, r.y + 4f, 26f, 30f), "◎", icon);
+            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = amberNeon }, fontSize = 22 };
+            GUI.Label(new Rect(r.x, r.y + 12f, 32f, 36f), "◎", icon);
         }
 
         // ==========================================
@@ -431,10 +441,10 @@ namespace NebulaRelay.UI
         // ==========================================
         private void DrawContextualPopups(LevelManager lm)
         {
-            float popW = 280f;
-            float popH = 64f;
+            float popW = 340f;
+            float popH = 76f;
             float popX = viewWidth - popW - 24f;
-            float popY = 80f;
+            float popY = 96f;
 
             // A. Slow Down Warning (if drone is near relay at dangerous speed)
             if (lm.Relay != null && lm.Drone != null && lm.Relay.IsDroneInActivationRadius(lm.Drone.transform.position))
@@ -442,7 +452,7 @@ namespace NebulaRelay.UI
                 Rigidbody2D rb = lm.Drone.GetComponent<Rigidbody2D>();
                 if (rb != null && rb.linearVelocity.magnitude > lm.Relay.MaxSafeSpeed && lm.Relay.State == RelayState.ReadyForDroneActivation)
                 {
-                    DrawAlertCard(new Rect(popX, popY, popW, popH), amberNeon, "⚠ SLOW DOWN", "Enter the activation zone at <= 1.5 m/s");
+                    DrawAlertCard(new Rect(popX, popY, popW, popH), redDanger, "⚠ SLOW DOWN!", "Docking limit: <= 1.5 m/s");
                     popY += popH + 12f;
                 }
             }
@@ -450,62 +460,62 @@ namespace NebulaRelay.UI
             // B. Low Battery Warning
             if (lm.Battery != null && lm.Battery.IsLowBattery && lm.Battery.CurrentBattery > 0f)
             {
-                DrawAlertCard(new Rect(popX, popY, popW, popH), magentaNeon, "⚡ LOW BATTERY", $"{(int)lm.Battery.CurrentBattery}% remaining");
+                DrawAlertCard(new Rect(popX, popY, popW, popH), magentaNeon, "⚡ LOW BATTERY", $"{(int)lm.Battery.CurrentBattery}% reserves remaining");
                 popY += popH + 12f;
             }
 
             // C. Relay Restored Notification
             if (lm.Relay != null && lm.Relay.State == RelayState.Activated)
             {
-                DrawAlertCard(new Rect(popX, popY, popW, popH), greenNeon, "✔ RELAY ACTIVATED", $"Sector {lm.LevelNumber} signal restored!");
+                DrawAlertCard(new Rect(popX, popY, popW, popH), greenNeon, "✔ RELAY ONLINE", $"Sector 0{lm.LevelNumber} network restored!");
             }
         }
 
         private void DrawAlertCard(Rect r, Color accent, string title, string detail)
         {
             GUIStyle card = new GUIStyle(panelStyle);
-            card.normal.background = MakeBorderedTex(32, 32, new Color(0.05f, 0.08f, 0.14f, 0.95f), accent, 1);
+            card.normal.background = MakeBorderedTex(32, 32, new Color(0.05f, 0.08f, 0.14f, 0.95f), accent, 2);
             GUI.Box(r, GUIContent.none, card);
 
             GUIStyle hStyle = new GUIStyle(cardHeaderStyle) { normal = { textColor = accent } };
-            GUI.Label(new Rect(r.x + 14f, r.y + 10f, r.width - 28f, 20f), title, hStyle);
-            GUI.Label(new Rect(r.x + 14f, r.y + 32f, r.width - 28f, 24f), detail, cardBodyStyle);
+            GUI.Label(new Rect(r.x + 16f, r.y + 12f, r.width - 32f, 24f), title, hStyle);
+            GUI.Label(new Rect(r.x + 16f, r.y + 38f, r.width - 32f, 26f), detail, cardBodyStyle);
         }
 
         // ==========================================
-        // 5. PAUSE MENU
+        // 5. PAUSE MENU MODAL
         // ==========================================
         private void DrawPauseModal()
         {
             DrawModalBackdrop();
 
-            float w = 320f;
-            float h = showSettings ? 280f : 240f;
+            float w = 440f;
+            float h = showSettings ? 380f : 340f;
             Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
 
             GUI.Box(modalRect, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(modalRect.x + 24f, modalRect.y + 20f, modalRect.width - 48f, modalRect.height - 40f));
+            GUILayout.BeginArea(new Rect(modalRect.x + 32f, modalRect.y + 28f, modalRect.width - 64f, modalRect.height - 56f));
 
             GUILayout.Label("PAUSED", modalTitleStyle);
-            GUILayout.Space(14);
+            GUILayout.Space(20);
 
             if (!showSettings)
             {
-                if (GUILayout.Button("RESUME", buttonSciFiStyle, GUILayout.Height(36)))
+                if (GUILayout.Button("RESUME FLIGHT", buttonSciFiStyle, GUILayout.Height(50)))
                 {
                     TogglePause();
                 }
 
-                GUILayout.Space(8);
+                GUILayout.Space(12);
 
-                if (GUILayout.Button("SETTINGS", buttonSciFiStyle, GUILayout.Height(36)))
+                if (GUILayout.Button("SETTINGS", buttonSciFiStyle, GUILayout.Height(48)))
                 {
                     showSettings = true;
                 }
 
-                GUILayout.Space(8);
+                GUILayout.Space(12);
 
-                if (GUILayout.Button("QUIT TO MENU", buttonSciFiStyle, GUILayout.Height(36)))
+                if (GUILayout.Button("QUIT TO MENU", buttonSciFiStyle, GUILayout.Height(48)))
                 {
                     Time.timeScale = 1f;
                     SceneManager.LoadScene("MainMenu");
@@ -517,9 +527,9 @@ namespace NebulaRelay.UI
                 masterVolume = GUILayout.HorizontalSlider(masterVolume, 0f, 1f);
                 AudioListener.volume = masterVolume;
 
-                GUILayout.Space(16);
+                GUILayout.Space(24);
 
-                if (GUILayout.Button("BACK", buttonSciFiStyle, GUILayout.Height(36)))
+                if (GUILayout.Button("BACK", buttonSciFiStyle, GUILayout.Height(48)))
                 {
                     showSettings = false;
                 }
@@ -535,22 +545,22 @@ namespace NebulaRelay.UI
         {
             DrawModalBackdrop();
 
-            float w = 360f;
-            float h = 240f;
+            float w = 480f;
+            float h = 320f;
             Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
 
             GUI.Box(modalRect, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(modalRect.x + 24f, modalRect.y + 20f, modalRect.width - 48f, modalRect.height - 40f));
+            GUILayout.BeginArea(new Rect(modalRect.x + 32f, modalRect.y + 28f, modalRect.width - 64f, modalRect.height - 56f));
 
             GUILayout.Label("MISSION COMPLETE", modalTitleStyle);
-            GUILayout.Space(6);
-            GUILayout.Label($"Relay {lm.LevelNumber} successfully online!", modalBodyStyle);
+            GUILayout.Space(10);
+            GUILayout.Label($"Relay Station 0{lm.LevelNumber} successfully brought online!", modalBodyStyle);
 
-            GUILayout.Space(16);
+            GUILayout.Space(24);
 
             int maxSectors = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;
-            string advanceText = (lm.LevelNumber < maxSectors) ? "NEXT SECTOR  ›" : "GALACTIC VICTORY — RETURN TO BASE";
-            if (GUILayout.Button(advanceText, buttonSciFiStyle, GUILayout.Height(38)))
+            string advanceText = (lm.LevelNumber < maxSectors) ? "NEXT SECTOR  ›" : "GALACTIC VICTORY";
+            if (GUILayout.Button(advanceText, buttonSciFiStyle, GUILayout.Height(52)))
             {
                 Time.timeScale = 1f;
                 if (lm.LevelNumber < maxSectors)
@@ -563,9 +573,9 @@ namespace NebulaRelay.UI
                 }
             }
 
-            GUILayout.Space(8);
+            GUILayout.Space(12);
 
-            if (GUILayout.Button("MAIN MENU", buttonSciFiStyle, GUILayout.Height(32)))
+            if (GUILayout.Button("RETURN TO MAIN MENU", buttonSciFiStyle, GUILayout.Height(48)))
             {
                 Time.timeScale = 1f;
                 SceneManager.LoadScene("MainMenu");
@@ -578,29 +588,29 @@ namespace NebulaRelay.UI
         {
             DrawModalBackdrop();
 
-            float w = 340f;
-            float h = 230f;
+            float w = 460f;
+            float h = 320f;
             Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
 
             GUI.Box(modalRect, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(modalRect.x + 24f, modalRect.y + 20f, modalRect.width - 48f, modalRect.height - 40f));
+            GUILayout.BeginArea(new Rect(modalRect.x + 32f, modalRect.y + 28f, modalRect.width - 64f, modalRect.height - 56f));
 
             GUIStyle failTitle = new GUIStyle(modalTitleStyle) { normal = { textColor = redDanger } };
             GUILayout.Label("MISSION FAILED", failTitle);
-            GUILayout.Space(6);
-            GUILayout.Label(string.IsNullOrEmpty(lm.FailureReason) ? "Battery depleted in deep space." : lm.FailureReason, modalBodyStyle);
+            GUILayout.Space(10);
+            GUILayout.Label(string.IsNullOrEmpty(lm.FailureReason) ? "Ship destroyed or power exhausted." : lm.FailureReason, modalBodyStyle);
 
-            GUILayout.Space(16);
+            GUILayout.Space(24);
 
-            if (GUILayout.Button("RETRY SECTOR [R]", buttonSciFiStyle, GUILayout.Height(38)))
+            if (GUILayout.Button("RETRY SECTOR [R]", buttonSciFiStyle, GUILayout.Height(52)))
             {
                 Time.timeScale = 1f;
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             }
 
-            GUILayout.Space(8);
+            GUILayout.Space(12);
 
-            if (GUILayout.Button("MAIN MENU", buttonSciFiStyle, GUILayout.Height(32)))
+            if (GUILayout.Button("RETURN TO MAIN MENU", buttonSciFiStyle, GUILayout.Height(48)))
             {
                 Time.timeScale = 1f;
                 SceneManager.LoadScene("MainMenu");
@@ -611,7 +621,7 @@ namespace NebulaRelay.UI
 
         private void DrawModalBackdrop()
         {
-            DrawRect(new Rect(0, 0, viewWidth, viewHeight), new Color(0f, 0.02f, 0.05f, 0.75f));
+            DrawRect(new Rect(0, 0, viewWidth, viewHeight), new Color(0f, 0.02f, 0.06f, 0.85f));
         }
 
         private void DrawRect(Rect r, Color c)

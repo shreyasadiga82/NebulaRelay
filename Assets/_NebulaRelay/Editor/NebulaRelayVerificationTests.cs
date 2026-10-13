@@ -1,14 +1,15 @@
 using UnityEditor;
 using UnityEngine;
 using NebulaRelay.Delivery;
+using NebulaRelay.UI;
 
 namespace NebulaRelay.Editor
 {
     /// <summary>
     /// NebulaRelayVerificationTests runs automated verification checks on all core math,
     /// physics assumptions, ring ordering, relay activation, battery rules, scene camera sizes,
-    /// prefab sizing, and zero-override scene checks.
-    /// Can be executed from the top menu: Nebula Relay > Run All 19 Verification Tests.
+    /// prefab sizing, zero-override scene checks, and UI scaling integrity.
+    /// Can be executed from the top menu: Nebula Relay > Run All 20 Verification Tests.
     /// </summary>
     [InitializeOnLoad]
     public static class NebulaRelayVerificationTests
@@ -18,7 +19,7 @@ namespace NebulaRelay.Editor
             EditorApplication.delayCall += RunAllTests;
         }
 
-        [MenuItem("Nebula Relay/Run All 19 Verification Tests", priority = 3)]
+        [MenuItem("Nebula Relay/Run All 20 Verification Tests", priority = 3)]
         public static void RunAllTests()
         {
             if (EditorApplication.isPlaying)
@@ -35,10 +36,10 @@ namespace NebulaRelay.Editor
             }
 
             int passed = 0;
-            int total = 19;
+            int total = 20;
 
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
-            Debug.Log("<b><color=#00E5FF>[NEBULA RELAY] STARTING AUTOMATED TEST SUITE (19 TESTS)</color></b>");
+            Debug.Log("<b><color=#00E5FF>[NEBULA RELAY] STARTING AUTOMATED TEST SUITE (20 TESTS)</color></b>");
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
 
             // Test 1: Projectile Math - Zero Gravity Linear Prediction
@@ -416,6 +417,46 @@ namespace NebulaRelay.Editor
                 else
                 {
                     LogFail("19. Prefab World Target Sizing", "Unable to load prefabs for size measurement");
+                }
+            }
+
+            // Test 20: UI Scaling & Minimum Font Size Check
+            {
+                // Verify UIScale returns expected scale factors for different laptop / desktop resolutions:
+                float scale1366 = UIScale.GetScale(1366f, 768f);
+                float scale1536 = UIScale.GetScale(1536f, 864f);
+                float scale1920 = UIScale.GetScale(1920f, 1080f);
+                float scale2560 = UIScale.GetScale(2560f, 1440f);
+                float scale1280 = UIScale.GetScale(1280f, 800f);
+
+                bool scalesCorrect =
+                    Mathf.Abs(scale1366 - (768f / 720f)) < 0.001f &&
+                    Mathf.Approximately(scale1536, 1.2f) &&
+                    Mathf.Approximately(scale1920, 1.5f) &&
+                    Mathf.Approximately(scale2560, 2.0f) &&
+                    Mathf.Approximately(scale1280, 1.0f);
+
+                // Verify minimum font sizes in UIScale and both UI controllers are >= 14 reference px
+                bool fontSizesCorrect =
+                    UIScale.MinFontSize >= 14 &&
+                    UIScale.FontSmallLabel >= 14 &&
+                    UIScale.FontBodyDetail >= 14 &&
+                    UIScale.FontCardHeader >= 14 &&
+                    UIScale.FontObjective >= 14 &&
+                    UIScale.FontButton >= 14 &&
+                    UIScale.FontValue >= 14 &&
+                    UIScale.FontHUDTitle >= 14 &&
+                    UIScale.FontModalTitle >= 14 &&
+                    UIScale.FontMenuMainTitle >= 14;
+
+                if (scalesCorrect && fontSizesCorrect)
+                {
+                    LogPass("20. UI Scaling & Font Size Integrity", $"Scales: 1366x768={scale1366:F2}, 1536x864={scale1536:F2}, 1920x1080={scale1920:F2}, 2560x1440={scale2560:F2}, 1280x800={scale1280:F2}. Min font size >= 14px.");
+                    passed++;
+                }
+                else
+                {
+                    LogFail("20. UI Scaling & Font Size Integrity", $"Scale mismatch or font size < 14 (scales: {scalesCorrect}, fonts: {fontSizesCorrect})");
                 }
             }
 

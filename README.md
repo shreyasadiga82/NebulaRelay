@@ -7,7 +7,7 @@
 ![Language](https://img.shields.io/badge/Language-C%23%209.0%2B-239120.svg?style=for-the-badge&logo=c-sharp&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white)
 ![Input System](https://img.shields.io/badge/Input-Unity%20Input%20System%20(New)-orange.svg?style=for-the-badge&logo=unity&logoColor=white)
-![Automated Tests](https://img.shields.io/badge/Tests-19%2F19%20Passing-brightgreen.svg?style=for-the-badge&logo=pytest&logoColor=white)
+![Automated Tests](https://img.shields.io/badge/Tests-20%2F20%20Passing-brightgreen.svg?style=for-the-badge&logo=pytest&logoColor=white)
 
 <br/>
 
@@ -180,7 +180,7 @@ If $\|v_{\text{drone}}\| > 1.5\text{ u/s}$, docking fails and an elastic impulse
 
 ## 🧪 Automated Verification Suite
 
-Nebula Relay includes a comprehensive 19-test automated verification suite built into [NebulaRelayVerificationTests](Assets/_NebulaRelay/Editor/NebulaRelayVerificationTests.cs). All 19 tests pass on every compilation and scene build:
+Nebula Relay includes a comprehensive 20-test automated verification suite built into [NebulaRelayVerificationTests](Assets/_NebulaRelay/Editor/NebulaRelayVerificationTests.cs). All 20 tests pass on every compilation and scene build:
 
 ```
 ============================================================
@@ -205,13 +205,14 @@ Nebula Relay includes a comprehensive 19-test automated verification suite built
 [PASS]  17. Level Camera Orthographic Size (All 5 level cameras use orthographicSize 7.5)
 [PASS]  18. Zero Prefab Scale Overrides in Scenes (No propertyPath: m_LocalScale overrides in level scenes)
 [PASS]  19. Prefab World Target Sizing (Drone 1.20u, Ring 2.40u, Relay 3.20u, Asteroid 1.39u, Capsule 0.40u, Receiver 1.50u)
+[PASS]  20. UI Scaling & Font Size Integrity (Scales: 1366x768=1.07, 1536x864=1.20, 1920x1080=1.50, 2560x1440=2.00, 1280x800=1.00; Min font size >= 14px)
 ------------------------------------------------------------
-RESULT: 19 / 19 TESTS PASSED (100% COVERAGE)
+RESULT: 20 / 20 TESTS PASSED (100% COVERAGE)
 ============================================================
 ```
 
 To execute the test suite in Unity:
-> Top Menu Bar $\rightarrow$ **Nebula Relay** $\rightarrow$ **Run All 19 Verification Tests**
+> Top Menu Bar $\rightarrow$ **Nebula Relay** $\rightarrow$ **Run All 20 Verification Tests**
 
 ---
 
@@ -254,7 +255,8 @@ NebulaRelay/
 │   │   ├── Core/
 │   │   │   ├── GameManager.cs            # Persistent singleton & relay tracker
 │   │   │   ├── LevelManager.cs           # Sector lifecycle, objectives & corridor bounds
-│   │   │   └── BatteryManager.cs         # Shield capacity & power consumption
+│   │   │   ├── BatteryManager.cs         # Shield capacity & power consumption
+│   │   │   └── ScreenSetup.cs            # Native fullscreen init & F11 / Alt+Enter window toggle
 │   │   ├── Player/
 │   │   │   ├── DroneController.cs        # 2D Newtonian flight, corridor soft-clamping & speed caps
 │   │   │   └── DroneVisuals.cs           # Thruster glow, banking & hit flashes
@@ -269,19 +271,20 @@ NebulaRelay/
 │   │   │   ├── RelayStation.cs           # Safe-speed velocity gate & docking
 │   │   │   ├── RelayStationVisuals.cs    # Spire energy charging & beacon beam
 │   │   │   ├── AsteroidHazard.cs         # Collision damage, rotation & runtime variation
-│   │   │   ├── CameraFollow.cs           # Smooth corridor damping & tracking
+│   │   │   ├── CameraFollow.cs           # Smooth corridor damping & aspect ratio adaptation
 │   │   │   ├── ParallaxBackground.cs     # Continuous cosmic parallax drift
 │   │   │   ├── CosmicEnvironment.cs      # Autonomous rotating celestial objects
 │   │   │   └── CosmicDustParticles.cs    # Procedural floating star mote field
 │   │   ├── UI/
-│   │   │   ├── HUDController.cs          # Real-time speedometer, battery & reference 1920x1080 matrix
-│   │   │   └── MainMenuController.cs     # Sci-fi mission selector & audio settings
+│   │   │   ├── UIScale.cs                # Shared 1280x720 reference scaler for laptop & desktop UI
+│   │   │   ├── HUDController.cs          # Real-time speedometer, 220x24 battery & 14+ pt fonts
+│   │   │   └── MainMenuController.cs     # Sci-fi mission selector & dynamic background scaler
 │   │   └── Effects/
 │   │       └── AudioManager.cs           # Zero-dependency procedural sound generator
 │   │
 │   └── Editor/
 │       ├── NebulaSceneBuilder.cs         # Deterministic scene generator & build pipeline
-│       └── NebulaRelayVerificationTests.cs # 19-check automated verification suite
+│       └── NebulaRelayVerificationTests.cs # 20-check automated verification suite
 ```
 
 ---

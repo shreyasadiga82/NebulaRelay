@@ -23,8 +23,12 @@ namespace NebulaRelay.World
         [SerializeField] private Vector2 minBounds = new Vector2(-40f, -8f);
         [SerializeField] private Vector2 maxBounds = new Vector2(40f, 8f);
 
+        [Header("Aspect Ratio Adaptation")]
+        [SerializeField] private float baseOrthoSize = 7.5f;
+
         private Vector3 currentVelocity = Vector3.zero;
         private Rigidbody2D targetRb;
+        private Camera cam;
 
         public void SetTarget(Transform newTarget, Vector2 minB, Vector2 maxB)
         {
@@ -38,8 +42,22 @@ namespace NebulaRelay.World
             }
         }
 
+        private void Awake()
+        {
+            cam = GetComponent<Camera>();
+            if (cam == null) cam = Camera.main;
+            if (cam != null && cam.orthographic)
+            {
+                baseOrthoSize = cam.orthographicSize;
+            }
+            UpdateOrthoSize();
+        }
+
         private void Start()
         {
+            if (cam == null) cam = GetComponent<Camera>();
+            UpdateOrthoSize();
+
             if (target == null)
             {
                 GameObject player = GameObject.FindGameObjectWithTag("Player");
@@ -51,8 +69,27 @@ namespace NebulaRelay.World
             }
         }
 
+        public void UpdateOrthoSize()
+        {
+            if (cam == null || !cam.orthographic) return;
+
+            // On screens narrower than 16:9 (such as 16:10 or 4:3), raise effective ortho size
+            // so the horizontal view is at least 16:9 width and gameplay objects are never cropped.
+            float targetAspect = 16f / 9f;
+            float currentAspect = cam.aspect;
+            if (currentAspect < targetAspect && currentAspect > 0.05f)
+            {
+                cam.orthographicSize = baseOrthoSize * (targetAspect / currentAspect);
+            }
+            else
+            {
+                cam.orthographicSize = baseOrthoSize;
+            }
+        }
+
         private void LateUpdate()
         {
+            UpdateOrthoSize();
             if (target == null) return;
 
             Vector3 targetPos = target.position + offset;

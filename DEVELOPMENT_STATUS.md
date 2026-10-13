@@ -30,13 +30,14 @@
 | **Sector 3: The Ion Storm** | P7 | `Level_03.unity` | ✅ Complete | Moving slaloms (-28 to +28): 5 rings, cross-drift hazard avoidance |
 | **Sector 4: The Gravity Well** | P7 | `Level_04.unity` | ✅ Complete | Golden vortex (-32 to +32): 5 rings, high precision corridors |
 | **Sector 5: Omega Transmission**| P7 | `Level_05.unity` | ✅ Complete | Grand climax (-38 to +38): 6 rings, final master relay, galactic victory |
-| **Main Menu & Scene Flow** | P8 | `MainMenu.unity`, `MainMenuController.cs` | ✅ Complete | Title screen, 5-mission briefing cards, sector selector, audio settings, quit |
-| **HUD & UI System** | P8/P11 | `HUDController.cs` | ✅ Complete | Reference 1920x1080 matrix scaling, real-time speedometer, battery bar, objective directive, 5-relay dock |
+| **Main Menu & Scene Flow** | P8 | `MainMenu.unity`, `MainMenuController.cs` | ✅ Complete | Title screen, 5-mission briefing cards, dynamic background scaler, audio settings, quit |
+| **HUD & UI System** | P8/P11 | `HUDController.cs`, `UIScale.cs` | ✅ Complete | 1280x720 reference matrix scaling, font sizes >= 14, 220x24 battery bar, red speed limit above 1.5 m/s |
+| **Screen & Window Manager** | P15 | `ScreenSetup.cs` | ✅ Complete | Borderless fullscreen on launch, 90% laptop window clamping, F11 / Alt+Enter toggle |
 | **Audio Synthesizer** | P10 | `AudioManager.cs` | ✅ Complete | Zero-dependency procedural SFX generator (thrust, laser launch, chime, bell, fanfare, ambient) |
-| **Automated Test Suite** | P12/P15 | `NebulaRelayVerificationTests.cs` | ✅ Complete | 19 automated validation checks covering math, physics, ordering, gates, 6 scenes, camera size, zero scale overrides, and prefab dimensions |
+| **Automated Test Suite** | P12/P15 | `NebulaRelayVerificationTests.cs` | ✅ Complete | 20 automated validation checks covering math, physics, ordering, gates, 6 scenes, camera size, zero scale overrides, prefab dimensions, and UI scaling |
 | **Build Settings & Standalone** | P13 | `NebulaSceneBuilder.cs` | ✅ Complete | Registered all 6 scenes (MainMenu + Sectors 1-5); Windows x64 build pipeline |
 | **Calibrated World Proportions**| P14 | Prefabs & `NebulaSceneBuilder.cs` | ✅ Complete | Drone ~1.2u (0.132 scale), Ring ~2.4u (0.26 scale), Relay ~3.2u (0.335 scale), Asteroids 1.0–1.8u (0.17 scale), Capsule ~0.4u (0.057 scale), Receiver ~1.5u (1.43 scale) |
-| **Camera Tracking System** | P14 | `CameraFollow.cs` | ✅ Complete | Smooth damping with velocity look-ahead, clamped flight corridors, orthographicSize 7.5 across all 5 levels (8.0 in MainMenu) |
+| **Camera Tracking System** | P14 | `CameraFollow.cs` | ✅ Complete | Smooth damping with velocity look-ahead, clamped flight corridors, aspect ratio adaptation for 16:10, 4:3, 21:9 |
 | **Live Continuous Background** | P14 | `ParallaxBackground.cs`, `CosmicEnvironment.cs`, `CosmicDustParticles.cs` | ✅ Complete | Continuous autonomous cosmic drift, camera-anchored nebulae, live drifting star motes, rotating asteroids (scale 0.05–0.12), planet (scale 0.45) |
 | **Input System Migration** | P15 | All player & UI scripts | ✅ Complete | Unity Input System (New), `Keyboard.current` & `Mouse.current` with null checks, legacy `Input.*` removed |
 
@@ -101,7 +102,7 @@ Assets/_NebulaRelay/
 
 ## 4. Verification & Testing Summary
 
-19 out of 19 automated validation tests passed (`Nebula Relay > Run All 19 Verification Tests`):
+20 out of 20 automated validation tests passed (`Nebula Relay > Run All 20 Verification Tests`):
 1. **Zero-Gravity Linear Motion**: Verified $p(t) = p_0 + v_0 t$.
 2. **Acceleration Integration**: Verified $p(t) = p_0 + v_0 t + \frac{1}{2} a t^2$.
 3. **Trajectory Preview Alignment**: Verified mathematical overlap between preview points and projectile path.
@@ -121,3 +122,4 @@ Assets/_NebulaRelay/
 17. **Level Camera Orthographic Size**: Verified all 5 level scenes use `orthographicSize = 7.5`.
 18. **Zero Prefab Scale Overrides in Scenes**: Verified no `propertyPath: m_LocalScale` overrides in any level scene.
 19. **Prefab World Target Sizing**: Drone 1.20u, Ring 2.40u, Relay 3.20u, Asteroid 1.39u, Capsule 0.40u, Receiver 1.50u.
+20. **UI Scaling & Font Size Integrity**: Verified scale factors across 1366x768, 1536x864, 1920x1080, 2560x1440, 1280x800, and minimum font size >= 14px.

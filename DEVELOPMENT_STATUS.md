@@ -22,17 +22,21 @@
 | **Relay Station Activation** | P5 | `RelayStation.cs`, `RelayStation.prefab` | ✅ Complete | 4-stage state machine, safe speed docking check ($\le 1.5$ u/s), "SLOW DOWN" warning |
 | **Battery Management** | P6 | `BatteryManager.cs` | ✅ Complete | 100% capacity, thrust drain (0.8%/s), launch cost (4%), low battery (<20%), fail at 0% |
 | **Asteroid Hazards** | P6 | `AsteroidHazard.cs`, `AsteroidHazard.prefab` | ✅ Complete | 2D obstacles with collision damage (-15% battery), capsule interception, patrol oscillation |
-| **Game Manager** | P7 | `GameManager.cs` | ✅ Complete | Persistent singleton (`DontDestroyOnLoad`), tracks 0/3 to 3/3 relays, scene management |
+| **Game Manager** | P7 | `GameManager.cs` | ✅ Complete | Persistent singleton (`DontDestroyOnLoad`), tracks 0/5 to 5/5 relays, scene management |
 | **Level Manager** | P7 | `LevelManager.cs` | ✅ Complete | Coordinates level objectives, win/fail modal triggers, quick retry (<kbd>R</kbd>), advance (<kbd>Space</kbd>) |
-| **Level 1: First Signal** | P7 | `Level_01.unity` | ✅ Complete | Intro mission: 2 rings, stationary receiver, relay station |
-| **Level 2: The Debris Field** | P7 | `Level_02.unity` | ✅ Complete | Asteroid hazards, 3 ordered rings, tight trajectory planning, relay station |
-| **Level 3: The Last Transmission**| P7 | `Level_03.unity` | ✅ Complete | Advanced challenge: dual asteroid corridors, 3 rings, final relay, victory sequence |
-| **Main Menu & Scene Flow** | P8 | `MainMenu.unity`, `MainMenuController.cs` | ✅ Complete | Title screen, mission briefing, sector selector, quit button |
-| **HUD & UI System** | P8/P11 | `HUDController.cs` | ✅ Complete | Real-time speedometer, battery bar, objective directive, 3-relay counter, modal dialogs |
+| **Sector 1: First Signal** | P7 | `Level_01.unity` | ✅ Complete | Expansive corridor (-18 to +18): 4 rings, ocean planet, intro orbital drift |
+| **Sector 2: The Debris Field** | P7 | `Level_02.unity` | ✅ Complete | Asteroid gauntlet (-24 to +24): 5 rings, patrolling debris belts, shield management |
+| **Sector 3: The Ion Storm** | P7 | `Level_03.unity` | ✅ Complete | Moving slaloms (-28 to +28): 5 rings, cross-drift hazard avoidance |
+| **Sector 4: The Gravity Well** | P7 | `Level_04.unity` | ✅ Complete | Golden vortex (-32 to +32): 5 rings, high precision corridors |
+| **Sector 5: Omega Transmission**| P7 | `Level_05.unity` | ✅ Complete | Grand climax (-38 to +38): 6 rings, final master relay, galactic victory |
+| **Main Menu & Scene Flow** | P8 | `MainMenu.unity`, `MainMenuController.cs` | ✅ Complete | Title screen, 5-mission briefing cards, sector selector, audio settings, quit |
+| **HUD & UI System** | P8/P11 | `HUDController.cs` | ✅ Complete | Real-time speedometer, battery bar, objective directive, 5-relay dock, victory modal |
 | **Audio Synthesizer** | P10 | `AudioManager.cs` | ✅ Complete | Zero-dependency procedural SFX generator (thrust, laser launch, chime, bell, fanfare, ambient) |
-| **Automated Test Suite** | P12 | `NebulaRelayVerificationTests.cs` | ✅ Complete | 15 automated validation checks covering math, physics, ordering, gates, and assets |
-| **Build Settings & Standalone** | P13 | `NebulaSceneBuilder.cs` | ✅ Complete | Registered all 4 scenes; 1-click Windows x64 build pipeline |
-| **Cosmic Visual Polish** | P14 | `ParallaxBackground.cs`, `CosmicEnvironment.cs`, `DroneVisuals.cs`, `RelayStationVisuals.cs` | ✅ Complete | 4K nebulae, multi-layer parallax, glowing relay tower with beam, courier ship, neon HUD matching references |
+| **Automated Test Suite** | P12 | `NebulaRelayVerificationTests.cs` | ✅ Complete | 15 automated validation checks covering math, physics, ordering, gates, 6 scenes and assets |
+| **Build Settings & Standalone** | P13 | `NebulaSceneBuilder.cs` | ✅ Complete | Registered all 6 scenes (MainMenu + Sectors 1-5); Windows x64 build pipeline |
+| **Calibrated Object Proportions**| P14 | Prefabs & `NebulaSceneBuilder.cs` | ✅ Complete | Sleek ship (0.16 scale), gates (0.28 scale), relay spire (0.38 scale), asteroid hazards (0.25 scale) |
+| **Camera Tracking System** | P14 | `CameraFollow.cs` | ✅ Complete | Smooth damping with velocity look-ahead, clamped flight corridors |
+| **Live Continuous Background** | P14 | `ParallaxBackground.cs`, `CosmicEnvironment.cs`, `CosmicDustParticles.cs` | ✅ Complete | Continuous autonomous cosmic drift, camera-anchored nebulae, live drifting star motes, rotating asteroids |
 
 ---
 

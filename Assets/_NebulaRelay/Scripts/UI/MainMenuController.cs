@@ -192,7 +192,7 @@ namespace NebulaRelay.UI
                 fontSize = 10,
                 normal = { textColor = new Color(0.4f, 0.6f, 0.8f) }
             };
-            GUILayout.Label("THREE RELAYS. ONE SIGNAL. NO SECOND CHANCES.", tagStyle);
+            GUILayout.Label("FIVE RELAYS. ONE SIGNAL. NO SECOND CHANCES.", tagStyle);
 
             GUILayout.EndArea();
         }
@@ -202,8 +202,8 @@ namespace NebulaRelay.UI
         // ==========================================
         private void DrawMissionSelectScreen()
         {
-            float totalW = Mathf.Min(960f, Screen.width - 48f);
-            float totalH = 500f;
+            float totalW = Mathf.Min(980f, Screen.width - 40f);
+            float totalH = 520f;
             float posX = (Screen.width - totalW) / 2f;
             float posY = (Screen.height - totalH) / 2f;
 
@@ -217,37 +217,42 @@ namespace NebulaRelay.UI
             GUILayout.Label("NEBULA RELAY  /  SELECT MISSION", titleMainStyle, GUILayout.Height(34));
             GUILayout.FlexibleSpace();
             int totalRestored = GameManager.Instance != null ? GameManager.Instance.TotalRelaysRestored : 0;
-            GUILayout.Label($"STABILITY 100%  |  RELAYS {totalRestored}/3", headerSubStyle);
+            int maxR = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;
+            GUILayout.Label($"STABILITY 100%  |  RELAYS {totalRestored}/{maxR}", headerSubStyle);
             GUILayout.EndHorizontal();
 
-            GUILayout.Space(16);
+            GUILayout.Space(12);
 
             GUILayout.BeginHorizontal();
 
-            // LEFT COLUMN: 3 MISSION CARDS
-            float colW = (totalW - 72f) * 0.52f;
+            // LEFT COLUMN: 5 MISSION CARDS
+            float colW = (totalW - 64f) * 0.52f;
             GUILayout.BeginVertical(GUILayout.Width(colW));
 
-            DrawMissionCard(1, "01  FIRST SIGNAL", "Calm. Open space. Learn the basics.");
-            GUILayout.Space(10);
-            DrawMissionCard(2, "02  THE DEBRIS FIELD", "Asteroid hazards. Tight routes. Stay focused.");
-            GUILayout.Space(10);
-            DrawMissionCard(3, "03  THE LAST TRANSMISSION", "Precision. Speed. Final relay station.");
+            DrawMissionCard(1, "01  FIRST SIGNAL", "Calm orbital corridor. Sequential checkpoints.");
+            GUILayout.Space(6);
+            DrawMissionCard(2, "02  THE DEBRIS FIELD", "Asteroid hazards. Tight routes. Shield preservation.");
+            GUILayout.Space(6);
+            DrawMissionCard(3, "03  THE ION STORM", "Turbulent moving hazard slaloms. Precision flight.");
+            GUILayout.Space(6);
+            DrawMissionCard(4, "04  THE GRAVITY WELL", "Gravitational vortex corridors. Dense obstacles.");
+            GUILayout.Space(6);
+            DrawMissionCard(5, "05  THE OMEGA TRANSMISSION", "Grand galactic nexus. Final master relay station.");
 
             GUILayout.FlexibleSpace();
 
-            if (GUILayout.Button("‹  BACK TO MENU", secondaryBtnStyle, GUILayout.Width(180), GUILayout.Height(34)))
+            if (GUILayout.Button("‹  BACK TO MENU", secondaryBtnStyle, GUILayout.Width(180), GUILayout.Height(32)))
             {
                 currentState = MenuState.Title;
             }
 
             GUILayout.EndVertical();
 
-            GUILayout.Space(24);
+            GUILayout.Space(20);
 
             // RIGHT COLUMN: MISSION OVERVIEW PANEL
-            float overW = (totalW - 72f) * 0.48f;
-            GUILayout.BeginVertical(panelBoxStyle, GUILayout.Width(overW), GUILayout.Height(totalH - 100f));
+            float overW = (totalW - 64f) * 0.48f;
+            GUILayout.BeginVertical(panelBoxStyle, GUILayout.Width(overW), GUILayout.Height(totalH - 80f));
             GUILayout.Space(8);
 
             GUILayout.Label("MISSION OVERVIEW", headerSubStyle);
@@ -257,18 +262,28 @@ namespace NebulaRelay.UI
             string targets = "";
             if (selectedMissionIndex == 1)
             {
-                desc = "Sector 1 presents a calm orbital corridor. Fly through rings in sequential order, aim the energy capsule at the receiver dish, and dock at the relay station at <= 1.5 m/s.";
-                targets = "RINGS: 2  |  HAZARDS: None  |  SAFE SPEED: <= 1.5 m/s";
+                desc = "Sector 1 presents a calm orbital flight corridor. Fly through 4 rings in sequential order, aim the energy capsule at the receiver dish, and dock at the relay station at <= 1.5 m/s.";
+                targets = "RINGS: 4  |  HAZARDS: None  |  SAFE SPEED: <= 1.5 m/s";
             }
             else if (selectedMissionIndex == 2)
             {
-                desc = "Sector 2 traverses an active asteroid debris field. Avoid dense collisions that drain battery shields, navigate 3 checkpoint gates, and power the second relay station.";
-                targets = "RINGS: 3  |  HAZARDS: 2 Asteroids  |  SAFE SPEED: <= 1.5 m/s";
+                desc = "Sector 2 traverses an active asteroid debris field. Avoid dense collisions that drain battery shields, navigate 5 checkpoint gates, and power the second relay station.";
+                targets = "RINGS: 5  |  HAZARDS: 3 Asteroid Belts  |  SAFE SPEED: <= 1.5 m/s";
+            }
+            else if (selectedMissionIndex == 3)
+            {
+                desc = "High-energy ion turbulence creates moving asteroid slaloms. Thread through 5 orbital gates under dynamic cross-drift to activate the third relay.";
+                targets = "RINGS: 5  |  HAZARDS: Moving Asteroids  |  SAFE SPEED: <= 1.5 m/s";
+            }
+            else if (selectedMissionIndex == 4)
+            {
+                desc = "Golden gravitational anomalies pull drifting space debris into tight corridors. Precision thrust is required across 5 checkpoints to prevent kinetic damage.";
+                targets = "RINGS: 5  |  HAZARDS: Orbiting Hazards  |  SAFE SPEED: <= 1.5 m/s";
             }
             else
             {
-                desc = "The final transmission hub is surrounded by high-velocity debris corridors. Align all 3 orbital rings and transmit the master energy pulse to save the nebula.";
-                targets = "RINGS: 3  |  HAZARDS: 4 Asteroids  |  SAFE SPEED: <= 1.5 m/s";
+                desc = "The master galactic nexus hub. Navigate 6 checkpoint rings across an epic asteroid gauntlet and deliver the final master signal to achieve total galactic recovery.";
+                targets = "RINGS: 6  |  HAZARDS: Gauntlet Belt  |  SAFE SPEED: <= 1.5 m/s";
             }
 
             GUILayout.Label(desc, bodyStyle);
@@ -278,7 +293,7 @@ namespace NebulaRelay.UI
             GUILayout.FlexibleSpace();
 
             // Large Start Mission Button
-            if (GUILayout.Button("START MISSION  ›", primaryBtnStyle, GUILayout.Height(46)))
+            if (GUILayout.Button("START MISSION  ›", primaryBtnStyle, GUILayout.Height(44)))
             {
                 SceneManager.LoadScene($"Level_0{selectedMissionIndex}");
             }
@@ -295,7 +310,7 @@ namespace NebulaRelay.UI
             bool isSelected = (selectedMissionIndex == index);
             GUIStyle cardStyle = isSelected ? cardSelectStyle : cardUnselectStyle;
 
-            if (GUILayout.Button($"\n   {title}\n   {subtitle}\n", cardStyle, GUILayout.Height(84)))
+            if (GUILayout.Button($"   {title}  —  {subtitle}", cardStyle, GUILayout.Height(52)))
             {
                 selectedMissionIndex = index;
             }

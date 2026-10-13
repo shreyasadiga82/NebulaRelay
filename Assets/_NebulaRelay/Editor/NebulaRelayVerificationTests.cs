@@ -253,7 +253,9 @@ namespace NebulaRelay.Editor
                     "Assets/_NebulaRelay/Scenes/MainMenu.unity",
                     "Assets/_NebulaRelay/Scenes/Level_01.unity",
                     "Assets/_NebulaRelay/Scenes/Level_02.unity",
-                    "Assets/_NebulaRelay/Scenes/Level_03.unity"
+                    "Assets/_NebulaRelay/Scenes/Level_03.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_04.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_05.unity"
                 };
 
                 bool allExist = true;
@@ -268,7 +270,7 @@ namespace NebulaRelay.Editor
 
                 if (allExist)
                 {
-                    LogPass("15. Prefab and Scene Asset Integrity Check", "All 6 required prefabs and 4 required scenes exist on disk");
+                    LogPass("15. Prefab and Scene Asset Integrity Check", "All 6 required prefabs and 6 required scenes exist on disk");
                     passed++;
                 }
                 else LogFail("15. Asset Integrity", "One or more essential assets were missing from disk");

@@ -4,13 +4,13 @@ namespace NebulaRelay.World
 {
     /// <summary>
     /// CosmicEnvironment configures the multi-layer cosmic space scene for each level.
-    /// Spawns the nebula backdrop, distant planets, floating decorative asteroids,
-    /// and configures the ParallaxBackground controller.
+    /// Spawns the nebula backdrop, distant celestial bodies, floating rotating decorative asteroids,
+    /// and configures the live ParallaxBackground controller.
     /// </summary>
     public class CosmicEnvironment : MonoBehaviour
     {
         [Header("Sector Configuration")]
-        [Range(1, 3)] public int sectorIndex = 1;
+        [Range(1, 5)] public int sectorIndex = 1;
 
         [Header("Sprites")]
         [SerializeField] private Sprite nebulaSprite;
@@ -41,7 +41,7 @@ namespace NebulaRelay.World
                 parallax = gameObject.AddComponent<ParallaxBackground>();
             }
 
-            // 1. Nebula Layer (Layer 2, SortingOrder -80)
+            // 1. Nebula Layer (Layer 1, SortingOrder -80) - Live moving cosmic cloud
             if (nebulaSprite != null)
             {
                 GameObject nebulaObj = new GameObject("Layer_Nebula");
@@ -53,57 +53,79 @@ namespace NebulaRelay.World
                 sr.sortingOrder = -80;
                 sr.color = new Color(1f, 1f, 1f, 0.95f);
 
-                // Scale to comfortably cover camera view frustum (ortho size 8-12)
-                nebulaObj.transform.localScale = new Vector3(2.5f, 2.5f, 1f);
+                // Scale to comfortably cover camera view frustum across wide flight corridors
+                nebulaObj.transform.localScale = new Vector3(5.5f, 4.5f, 1f);
 
-                parallax.AddLayer(nebulaObj.transform, 0.04f, new Vector2(0.05f, 0.02f), "Nebula");
+                // Drift continuously at (-0.10, -0.04) u/s, anchored to camera with 0.04 parallax
+                parallax.AddLayer(nebulaObj.transform, 0.04f, new Vector2(-0.10f, -0.04f), true, "Nebula");
             }
 
-            // 2. Distant Planet Layer (Layer 3, SortingOrder -60)
-            if (planetSprite != null && sectorIndex == 1)
+            // 2. Distant Celestial Body Layer (Layer 2, SortingOrder -60)
+            if (planetSprite != null && (sectorIndex == 1 || sectorIndex == 4))
             {
                 GameObject planetObj = new GameObject("Layer_Planet_Moon");
                 planetObj.transform.SetParent(transform, false);
-                planetObj.transform.position = new Vector3(-12f, -5f, 0f); // Bottom-left like reference
-                planetObj.transform.localScale = new Vector3(0.85f, 0.85f, 1f);
+                Vector3 planetPos = (sectorIndex == 1) ? new Vector3(-14f, -4f, 0f) : new Vector3(18f, 6f, 0f);
+                planetObj.transform.position = planetPos;
+                planetObj.transform.localScale = new Vector3(0.9f, 0.9f, 1f);
 
                 SpriteRenderer sr = planetObj.AddComponent<SpriteRenderer>();
                 sr.sprite = planetSprite;
                 sr.sortingOrder = -60;
-                sr.color = new Color(0.85f, 0.9f, 1f, 0.9f);
+                sr.color = (sectorIndex == 1) ? new Color(0.85f, 0.95f, 1f, 0.9f) : new Color(1f, 0.85f, 0.5f, 0.85f);
 
-                parallax.AddLayer(planetObj.transform, 0.08f, new Vector2(0.01f, 0f), "Planet");
+                // Slow axial rotation
+                SlowSpinner spinner = planetObj.AddComponent<SlowSpinner>();
+                spinner.spinSpeed = 2f;
+
+                parallax.AddLayer(planetObj.transform, 0.07f, new Vector2(0.03f, 0.01f), false, "Planet");
             }
 
-            // 3. Decorative Background Asteroid Cluster (Layer 4, SortingOrder -40)
+            // 3. Decorative Live Background Asteroids (Layer 3, SortingOrder -40)
             if (asteroidSprite != null)
             {
                 GameObject clusterObj = new GameObject("Layer_DistantAsteroids");
                 clusterObj.transform.SetParent(transform, false);
 
-                // Spawn several decorative non-colliding background asteroids
-                int count = sectorIndex == 2 ? 8 : 4;
+                int count = 10;
                 for (int i = 0; i < count; i++)
                 {
                     GameObject ast = new GameObject($"BgAsteroid_{i}");
                     ast.transform.SetParent(clusterObj.transform, false);
 
-                    float x = Random.Range(-18f, 18f);
-                    float y = Random.Range(-10f, 10f);
+                    float x = Random.Range(-35f, 35f);
+                    float y = Random.Range(-12f, 12f);
                     ast.transform.localPosition = new Vector3(x, y, 0f);
 
-                    float s = Random.Range(0.2f, 0.45f);
+                    float s = Random.Range(0.18f, 0.38f);
                     ast.transform.localScale = new Vector3(s, s, 1f);
 
                     SpriteRenderer sr = ast.AddComponent<SpriteRenderer>();
                     sr.sprite = asteroidSprite;
                     sr.sortingOrder = -40;
-                    // Slightly dimmed/tinted so gameplay obstacles pop out clearly
-                    sr.color = new Color(0.35f, 0.4f, 0.6f, 0.65f);
+                    sr.color = new Color(0.35f, 0.42f, 0.62f, 0.65f);
+
+                    // Continuous rotation for live feeling
+                    SlowSpinner spinner = ast.AddComponent<SlowSpinner>();
+                    spinner.spinSpeed = Random.Range(-12f, 12f);
                 }
 
-                parallax.AddLayer(clusterObj.transform, 0.16f, new Vector2(-0.04f, 0.01f), "AsteroidBelt");
+                // Continuous drifting asteroid field
+                parallax.AddLayer(clusterObj.transform, 0.14f, new Vector2(-0.06f, 0.02f), false, "AsteroidBelt");
             }
+        }
+    }
+
+    /// <summary>
+    /// Helper component for slow continuous rotation of background celestial bodies.
+    /// </summary>
+    public class SlowSpinner : MonoBehaviour
+    {
+        public float spinSpeed = 5f;
+
+        private void Update()
+        {
+            transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime);
         }
     }
 }

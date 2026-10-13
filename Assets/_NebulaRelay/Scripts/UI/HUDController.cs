@@ -527,11 +527,12 @@ namespace NebulaRelay.UI
 
             GUILayout.Space(16);
 
-            string advanceText = (lm.LevelNumber < 3) ? "NEXT SECTOR" : "RETURN TO BASE";
+            int maxSectors = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;
+            string advanceText = (lm.LevelNumber < maxSectors) ? "NEXT SECTOR  ›" : "GALACTIC VICTORY — RETURN TO BASE";
             if (GUILayout.Button(advanceText, buttonSciFiStyle, GUILayout.Height(38)))
             {
                 Time.timeScale = 1f;
-                if (lm.LevelNumber < 3)
+                if (lm.LevelNumber < maxSectors)
                 {
                     SceneManager.LoadScene($"Level_0{lm.LevelNumber + 1}");
                 }

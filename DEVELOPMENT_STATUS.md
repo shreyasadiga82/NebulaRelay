@@ -29,9 +29,10 @@
 | **Level 3: The Last Transmission**| P7 | `Level_03.unity` | ✅ Complete | Advanced challenge: dual asteroid corridors, 3 rings, final relay, victory sequence |
 | **Main Menu & Scene Flow** | P8 | `MainMenu.unity`, `MainMenuController.cs` | ✅ Complete | Title screen, mission briefing, sector selector, quit button |
 | **HUD & UI System** | P8/P11 | `HUDController.cs` | ✅ Complete | Real-time speedometer, battery bar, objective directive, 3-relay counter, modal dialogs |
-| **Audio Synthesizer** | P10 | `AudioManager.cs` | ✅ Complete | Zero-dependency procedural SFX generator (thrust, laser launch, chime, bell, fanfare) |
+| **Audio Synthesizer** | P10 | `AudioManager.cs` | ✅ Complete | Zero-dependency procedural SFX generator (thrust, laser launch, chime, bell, fanfare, ambient) |
 | **Automated Test Suite** | P12 | `NebulaRelayVerificationTests.cs` | ✅ Complete | 15 automated validation checks covering math, physics, ordering, gates, and assets |
 | **Build Settings & Standalone** | P13 | `NebulaSceneBuilder.cs` | ✅ Complete | Registered all 4 scenes; 1-click Windows x64 build pipeline |
+| **Cosmic Visual Polish** | P14 | `ParallaxBackground.cs`, `CosmicEnvironment.cs`, `DroneVisuals.cs`, `RelayStationVisuals.cs` | ✅ Complete | 4K nebulae, multi-layer parallax, glowing relay tower with beam, courier ship, neon HUD matching references |
 
 ---
 
@@ -40,18 +41,22 @@
 ```
 Assets/_NebulaRelay/
 ├── Art/
-│   ├── Drone_Placeholder.png (Neon courier drone)
-│   ├── Capsule_Placeholder.png (Glowing energy orb)
-│   ├── Ring_Placeholder.png (Orbital torus gate)
-│   ├── Receiver_Placeholder.png (Octagonal receiver dish)
-│   ├── Relay_Placeholder.png (Orbital satellite station)
-│   └── Asteroid_Placeholder.png (Cratered deep space rock)
+│   ├── Nebula_FirstSignal.png (4K Cyan & azure deep space nebula)
+│   ├── Nebula_DebrisField.png (4K Purple & magenta asteroid nebula)
+│   ├── Nebula_LastTransmission.png (4K Clashing cosmic energy nebula)
+│   ├── MainMenu_CosmicBG.png (Panoramic title vista with planet & relay)
+│   ├── Drone_Courier.png (High-tech white & cyan delta courier spacecraft)
+│   ├── RelayStation_Tower.png (Futuristic orbital relay tower with energy core)
+│   ├── RingGate_Neon.png (Pulsing holographic neon checkpoint gate)
+│   ├── EnergyCapsule_Core.png (Bright magenta plasma energy projectile)
+│   ├── Planet_BlueOcean.png (Majestic ocean planet with cyan crescent rim)
+│   └── Asteroid_Detailed.png (Deep-space cratered asteroid with rim light)
 ├── Prefabs/
-│   ├── PlayerDrone.prefab (DroneController, CapsuleLauncher, TrajectoryPreview, BatteryManager)
+│   ├── PlayerDrone.prefab (DroneController, CapsuleLauncher, TrajectoryPreview, BatteryManager, DroneVisuals)
 │   ├── EnergyCapsule.prefab (Rigidbody2D, CircleCollider2D, EnergyCapsule)
 │   ├── RingGate.prefab (CircleCollider2D trigger, RingGate)
 │   ├── EnergyReceiver.prefab (CircleCollider2D trigger, EnergyReceiver)
-│   ├── RelayStation.prefab (RelayStation with child EnergyReceiver target)
+│   ├── RelayStation.prefab (RelayStation, RelayStationVisuals, EnergyReceiver)
 │   └── AsteroidHazard.prefab (CircleCollider2D, AsteroidHazard)
 ├── Scenes/
 │   ├── MainMenu.unity (Scene 0: Title screen and sector selector)
@@ -60,13 +65,13 @@ Assets/_NebulaRelay/
 │   └── Level_03.unity (Scene 3: The Last Transmission)
 ├── Scripts/
 │   ├── Core/ (GameManager, LevelManager, BatteryManager)
-│   ├── Player/ (DroneController)
+│   ├── Player/ (DroneController, DroneVisuals)
 │   ├── Delivery/ (CapsuleLauncher, EnergyCapsule, TrajectoryPreview, ProjectileMath)
-│   ├── World/ (RingGate, RingManager, EnergyReceiver, RelayStation, AsteroidHazard)
+│   ├── World/ (RingGate, RingManager, EnergyReceiver, RelayStation, RelayStationVisuals, AsteroidHazard, ParallaxBackground, CosmicEnvironment)
 │   ├── UI/ (HUDController, MainMenuController)
 │   └── Effects/ (AudioManager)
 └── Editor/
-    ├── NebulaSceneBuilder.cs (Scene authoring & Windows build automation)
+    ├── NebulaSceneBuilder.cs (Scene authoring, prefab upgrades & Windows build automation)
     └── NebulaRelayVerificationTests.cs (Automated 15-test suite)
 ```
 

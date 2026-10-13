@@ -9,8 +9,14 @@ namespace NebulaRelay.Editor
     /// physics assumptions, ring ordering, relay activation, and battery rules.
     /// Can be executed from the top menu: Nebula Relay > Run All 15 Verification Tests.
     /// </summary>
+    [InitializeOnLoad]
     public static class NebulaRelayVerificationTests
     {
+        static NebulaRelayVerificationTests()
+        {
+            EditorApplication.delayCall += RunAllTests;
+        }
+
         [MenuItem("Nebula Relay/Run All 15 Verification Tests", priority = 3)]
         public static void RunAllTests()
         {

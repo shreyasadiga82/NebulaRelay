@@ -12,6 +12,7 @@ namespace NebulaRelay.Effects
 
         private AudioSource sfxSource;
         private AudioSource thrustSource;
+        private AudioSource ambientSource;
 
         private AudioClip launchClip;
         private AudioClip ringPassClip;
@@ -20,6 +21,7 @@ namespace NebulaRelay.Effects
         private AudioClip warningClip;
         private AudioClip failureClip;
         private AudioClip thrustClip;
+        private AudioClip ambientClip;
 
         private void Awake()
         {
@@ -40,7 +42,18 @@ namespace NebulaRelay.Effects
             thrustSource.playOnAwake = false;
             thrustSource.volume = 0.25f;
 
+            ambientSource = gameObject.AddComponent<AudioSource>();
+            ambientSource.loop = true;
+            ambientSource.playOnAwake = false;
+            ambientSource.volume = 0.15f;
+
             GenerateProceduralAudioClips();
+
+            if (ambientClip != null)
+            {
+                ambientSource.clip = ambientClip;
+                ambientSource.Play();
+            }
         }
 
         private void GenerateProceduralAudioClips()
@@ -52,6 +65,7 @@ namespace NebulaRelay.Effects
             warningClip = CreateChirpClip("SFX_Warning", 400f, 600f, 0.15f);
             failureClip = CreateChirpClip("SFX_Failure", 450f, 150f, 0.5f);
             thrustClip = CreateRumbleClip("SFX_Thrust", 75f, 1.0f);
+            ambientClip = CreateAmbientPadClip("SFX_CosmicAmbient", 110f, 4.0f);
 
             thrustSource.clip = thrustClip;
         }
@@ -167,6 +181,31 @@ namespace NebulaRelay.Effects
                 float noise = (Random.value * 2f - 1f) * 0.2f;
                 float wave = Mathf.Sin(2f * Mathf.PI * freq * (i / (float)sampleRate)) * 0.8f;
                 data[i] = wave + noise;
+            }
+
+            AudioClip clip = AudioClip.Create(name, samples, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private static AudioClip CreateAmbientPadClip(string name, float baseFreq, float duration)
+        {
+            int sampleRate = 44100;
+            int samples = (int)(sampleRate * duration);
+            float[] data = new float[samples];
+
+            for (int i = 0; i < samples; i++)
+            {
+                float t = i / (float)samples;
+                float timeSec = i / (float)sampleRate;
+                // Layer fundamental + fifth + octave with slow chorus modulation
+                float lfo = 1f + 0.05f * Mathf.Sin(2f * Mathf.PI * 0.25f * timeSec);
+                float w1 = Mathf.Sin(2f * Mathf.PI * baseFreq * lfo * timeSec) * 0.4f;
+                float w2 = Mathf.Sin(2f * Mathf.PI * (baseFreq * 1.5f) * timeSec) * 0.25f;
+                float w3 = Mathf.Sin(2f * Mathf.PI * (baseFreq * 2.0f) * timeSec) * 0.15f;
+                // Smooth loop crossfade at boundaries
+                float loopFade = Mathf.Sin(t * Mathf.PI);
+                data[i] = (w1 + w2 + w3) * loopFade * 0.4f;
             }
 
             AudioClip clip = AudioClip.Create(name, samples, 1, sampleRate, false);

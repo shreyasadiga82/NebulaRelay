@@ -14,30 +14,26 @@ namespace NebulaRelay.Editor
     [InitializeOnLoad]
     public static class NebulaSceneBuilder
     {
-        private const string k_BuildKey = "NebulaRelay.ScenesBuilt.v1";
-
         static NebulaSceneBuilder()
         {
-            EditorApplication.delayCall += CheckAndBuildScenes;
+            EditorApplication.delayCall += OnEditorReady;
         }
 
-        private static void CheckAndBuildScenes()
+        private static void OnEditorReady()
         {
             if (EditorApplication.isCompiling || EditorApplication.isUpdating)
             {
-                EditorApplication.delayCall += CheckAndBuildScenes;
+                EditorApplication.delayCall += OnEditorReady;
                 return;
             }
 
-            if (!System.IO.File.Exists("Builds/Windows/NebulaRelay.exe"))
-            {
-                BuildWindowsExecutable();
-            }
+            BuildAllScenes();
         }
 
         [MenuItem("Nebula Relay/Build All 3 Levels & Main Menu", priority = 1)]
         public static void BuildAllScenes()
         {
+            UpgradePrefabs();
             BuildMainMenuScene();
             BuildLevel01Scene();
             BuildLevel02Scene();
@@ -46,7 +42,7 @@ namespace NebulaRelay.Editor
 
             // Re-open Level 1 as the active working scene
             EditorSceneManager.OpenScene("Assets/_NebulaRelay/Scenes/Level_01.unity");
-            Debug.Log("<color=#00FF66><b>[Nebula Relay] Successfully constructed MainMenu and all 3 Levels! Registered in Build Settings.</b></color>");
+            Debug.Log("<color=#00FF66><b>[Nebula Relay] Cosmic Visual Polish Applied! All 3 Levels and Main Menu constructed and registered in Build Settings.</b></color>");
         }
 
         [MenuItem("Nebula Relay/Build Windows Standalone (.exe)", priority = 2)]
@@ -77,16 +73,99 @@ namespace NebulaRelay.Editor
                 options = BuildOptions.None
             };
 
-            Debug.Log("[Nebula Relay] Starting Standalone Windows x64 build...");
+            Debug.Log("[Nebula Relay] Starting Standalone Windows x64 build with Cosmic Visuals...");
             var report = BuildPipeline.BuildPlayer(opt);
             if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
             {
-                Debug.Log($"<color=#00FF66><b>[Nebula Relay] Build Succeeded! Executable: {exePath} ({report.summary.totalSize / 1024 / 1024} MB)</b></color>");
+                Debug.Log($"<color=#00FF66><b>[Nebula Relay] Standalone Windows Build Succeeded! Executable: {exePath} ({report.summary.totalSize / 1024 / 1024} MB)</b></color>");
             }
             else
             {
                 Debug.LogError($"[Nebula Relay] Build failed: {report.summary.result}");
             }
+        }
+
+        // ==========================================
+        // PREFAB UPGRADES WITH HIGH-RES ART
+        // ==========================================
+        public static void UpgradePrefabs()
+        {
+            // 1. Player Drone Prefab
+            string dronePrefabPath = "Assets/_NebulaRelay/Prefabs/PlayerDrone.prefab";
+            GameObject dronePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(dronePrefabPath);
+            if (dronePrefab != null)
+            {
+                Sprite droneSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Drone_Courier.png");
+                SpriteRenderer sr = dronePrefab.GetComponent<SpriteRenderer>();
+                if (sr == null) sr = dronePrefab.AddComponent<SpriteRenderer>();
+                if (droneSprite != null) sr.sprite = droneSprite;
+                sr.sortingOrder = 5;
+
+                if (dronePrefab.GetComponent<DroneVisuals>() == null)
+                {
+                    dronePrefab.AddComponent<DroneVisuals>();
+                }
+                PrefabUtility.SavePrefabAsset(dronePrefab);
+            }
+
+            // 2. Relay Station Prefab
+            string relayPrefabPath = "Assets/_NebulaRelay/Prefabs/RelayStation.prefab";
+            GameObject relayPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(relayPrefabPath);
+            if (relayPrefab != null)
+            {
+                Sprite relaySprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/RelayStation_Tower.png");
+                SpriteRenderer sr = relayPrefab.GetComponent<SpriteRenderer>();
+                if (sr == null) sr = relayPrefab.AddComponent<SpriteRenderer>();
+                if (relaySprite != null) sr.sprite = relaySprite;
+                sr.sortingOrder = 2;
+
+                if (relayPrefab.GetComponent<RelayStationVisuals>() == null)
+                {
+                    relayPrefab.AddComponent<RelayStationVisuals>();
+                }
+                PrefabUtility.SavePrefabAsset(relayPrefab);
+            }
+
+            // 3. Ring Gate Prefab
+            string ringPrefabPath = "Assets/_NebulaRelay/Prefabs/RingGate.prefab";
+            GameObject ringPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ringPrefabPath);
+            if (ringPrefab != null)
+            {
+                Sprite ringSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/RingGate_Neon.png");
+                SpriteRenderer sr = ringPrefab.GetComponent<SpriteRenderer>();
+                if (sr == null) sr = ringPrefab.AddComponent<SpriteRenderer>();
+                if (ringSprite != null) sr.sprite = ringSprite;
+                sr.sortingOrder = 3;
+                PrefabUtility.SavePrefabAsset(ringPrefab);
+            }
+
+            // 4. Asteroid Hazard Prefab
+            string astPrefabPath = "Assets/_NebulaRelay/Prefabs/AsteroidHazard.prefab";
+            GameObject astPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(astPrefabPath);
+            if (astPrefab != null)
+            {
+                Sprite astSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
+                SpriteRenderer sr = astPrefab.GetComponent<SpriteRenderer>();
+                if (sr == null) sr = astPrefab.AddComponent<SpriteRenderer>();
+                if (astSprite != null) sr.sprite = astSprite;
+                sr.sortingOrder = 4;
+                PrefabUtility.SavePrefabAsset(astPrefab);
+            }
+
+            // 5. Energy Capsule Prefab
+            string capPrefabPath = "Assets/_NebulaRelay/Prefabs/EnergyCapsule.prefab";
+            GameObject capPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(capPrefabPath);
+            if (capPrefab != null)
+            {
+                Sprite capSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/EnergyCapsule_Core.png");
+                SpriteRenderer sr = capPrefab.GetComponent<SpriteRenderer>();
+                if (sr == null) sr = capPrefab.AddComponent<SpriteRenderer>();
+                if (capSprite != null) sr.sprite = capSprite;
+                sr.sortingOrder = 6;
+                PrefabUtility.SavePrefabAsset(capPrefab);
+            }
+
+            AssetDatabase.SaveAssets();
         }
 
         private static GameObject CreateSceneCamera(Color backgroundColor, float orthoSize = 8f)
@@ -102,9 +181,9 @@ namespace NebulaRelay.Editor
             cam.backgroundColor = backgroundColor;
             camObj.transform.position = new Vector3(0, 0, -10f);
 
-            // Add URP camera data
+            // URP camera settings
             UniversalAdditionalCameraData urpCam = camObj.AddComponent<UniversalAdditionalCameraData>();
-            urpCam.renderPostProcessing = false;
+            urpCam.renderPostProcessing = true; // Enable post-processing for Bloom
 
             return camObj;
         }
@@ -114,8 +193,8 @@ namespace NebulaRelay.Editor
             GameObject lightObj = new GameObject("Global Light 2D");
             Light2D light = lightObj.AddComponent<Light2D>();
             light.lightType = Light2D.LightType.Global;
-            light.color = Color.white;
-            light.intensity = 1.0f;
+            light.color = new Color(0.9f, 0.95f, 1f, 1f); // Soft cosmic tint
+            light.intensity = 1.1f;
         }
 
         private static GameObject CreatePlayerDrone(Vector3 position)
@@ -138,8 +217,10 @@ namespace NebulaRelay.Editor
                 drone.AddComponent<CapsuleLauncher>();
                 drone.AddComponent<TrajectoryPreview>();
                 drone.AddComponent<BatteryManager>();
+                drone.AddComponent<DroneVisuals>();
             }
 
+            drone.transform.localScale = new Vector3(0.85f, 0.85f, 1f);
             return drone;
         }
 
@@ -161,6 +242,7 @@ namespace NebulaRelay.Editor
                 ring.AddComponent<RingGate>();
             }
 
+            ring.transform.localScale = new Vector3(0.75f, 0.75f, 1f);
             RingGate gate = ring.GetComponent<RingGate>();
             if (gate != null)
             {
@@ -190,12 +272,18 @@ namespace NebulaRelay.Editor
                 relay.AddComponent<RelayStation>();
             }
 
+            relay.transform.localScale = new Vector3(0.95f, 0.95f, 1f);
             RelayStation station = relay.GetComponent<RelayStation>();
             if (station != null)
             {
                 SerializedObject so = new SerializedObject(station);
                 so.FindProperty("relayIndex").intValue = index;
                 so.ApplyModifiedProperties();
+            }
+
+            if (relay.GetComponent<RelayStationVisuals>() == null)
+            {
+                relay.AddComponent<RelayStationVisuals>();
             }
 
             return relay;
@@ -219,6 +307,7 @@ namespace NebulaRelay.Editor
                 asteroid.AddComponent<AsteroidHazard>();
             }
 
+            asteroid.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
             AsteroidHazard hazard = asteroid.GetComponent<AsteroidHazard>();
             if (hazard != null)
             {
@@ -251,6 +340,20 @@ namespace NebulaRelay.Editor
             coreObj.AddComponent<AudioManager>();
         }
 
+        private static void CreateCosmicEnvironment(int sector, Sprite nebulaSprite, Sprite planetSprite, Sprite asteroidSprite)
+        {
+            GameObject envObj = new GameObject("CosmicEnvironment");
+            CosmicEnvironment env = envObj.AddComponent<CosmicEnvironment>();
+            SerializedObject so = new SerializedObject(env);
+            so.FindProperty("sectorIndex").intValue = sector;
+            so.FindProperty("nebulaSprite").objectReferenceValue = nebulaSprite;
+            so.FindProperty("planetSprite").objectReferenceValue = planetSprite;
+            so.FindProperty("asteroidSprite").objectReferenceValue = asteroidSprite;
+            so.ApplyModifiedProperties();
+
+            env.SetupEnvironment();
+        }
+
         // ==========================================
         // 1. MAIN MENU SCENE
         // ==========================================
@@ -258,8 +361,20 @@ namespace NebulaRelay.Editor
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            CreateSceneCamera(new Color(0.043f, 0.059f, 0.102f, 1f)); // #0B0F1A space black
+            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), 8f); // #050816 deep space
             CreateGlobalLight();
+
+            // Panoramic cosmic title background
+            Sprite menuBg = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/MainMenu_CosmicBG.png");
+            if (menuBg != null)
+            {
+                GameObject bgObj = new GameObject("MainMenu_Background");
+                SpriteRenderer sr = bgObj.AddComponent<SpriteRenderer>();
+                sr.sprite = menuBg;
+                sr.sortingOrder = -100;
+                bgObj.transform.position = new Vector3(0f, 0f, 0f);
+                bgObj.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
+            }
 
             GameObject menuObj = new GameObject("MainMenuController");
             menuObj.AddComponent<MainMenuController>();
@@ -276,8 +391,13 @@ namespace NebulaRelay.Editor
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            CreateSceneCamera(new Color(0.043f, 0.059f, 0.102f, 1f), 7f);
+            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), 7f);
             CreateGlobalLight();
+
+            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Nebula_FirstSignal.png");
+            Sprite planet = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Planet_BlueOcean.png");
+            Sprite asteroid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
+            CreateCosmicEnvironment(1, nebula, planet, asteroid);
 
             CreatePlayerDrone(new Vector3(-6f, 0f, 0f));
             CreateRing(1, new Vector3(-2f, 1f, 0f));
@@ -299,8 +419,12 @@ namespace NebulaRelay.Editor
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            CreateSceneCamera(new Color(0.043f, 0.059f, 0.102f, 1f), 8.5f);
+            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), 8.5f);
             CreateGlobalLight();
+
+            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Nebula_DebrisField.png");
+            Sprite asteroid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
+            CreateCosmicEnvironment(2, nebula, null, asteroid);
 
             CreatePlayerDrone(new Vector3(-8f, 0f, 0f));
 
@@ -328,8 +452,12 @@ namespace NebulaRelay.Editor
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            CreateSceneCamera(new Color(0.043f, 0.059f, 0.102f, 1f), 10f);
+            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), 10f);
             CreateGlobalLight();
+
+            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Nebula_LastTransmission.png");
+            Sprite asteroid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
+            CreateCosmicEnvironment(3, nebula, null, asteroid);
 
             CreatePlayerDrone(new Vector3(-10f, 0f, 0f));
 

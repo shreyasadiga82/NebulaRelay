@@ -48,7 +48,13 @@ namespace NebulaRelay.World
         public int RelayIndex => relayIndex;
         public RelayState State { get; private set; } = RelayState.Inactive;
         public float MaxSafeSpeed => maxSafeSpeed;
+        public float ActivationZoneRadius => activationZoneRadius;
         public bool IsActivated => State == RelayState.Activated;
+
+        public bool IsDroneInActivationRadius(Vector3 dronePosition)
+        {
+            return Vector2.Distance(transform.position, dronePosition) <= activationZoneRadius;
+        }
 
         // Feedback message
         private string speedWarningMessage = "";

@@ -1,16 +1,25 @@
+using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using NebulaRelay.Player;
+using NebulaRelay.Core;
+using NebulaRelay.Effects;
+using NebulaRelay.World;
 
 namespace NebulaRelay.Delivery
 {
     /// <summary>
     /// CapsuleLauncher handles mouse aiming, trajectory calculation, and capsule firing.
-    /// Can be attached directly to the PlayerDrone GameObject.
+    /// Strictly limits the player to exactly 2 capsules per mission.
+    /// Tracks remaining capsules authoritatively and triggers mission failure if all capsules are exhausted
+    /// without powering the objective receiver.
     /// </summary>
     [SelectionBase]
     public class CapsuleLauncher : MonoBehaviour
     {
+        public const int MaxCapsulesPerMission = 2;
+
         [Header("Launch Configuration")]
         [Tooltip("The Energy Capsule prefab to instantiate when firing.")]
         [SerializeField] private GameObject capsulePrefab;
@@ -40,6 +49,10 @@ namespace NebulaRelay.Delivery
         [Tooltip("Maximum active capsules permitted in flight simultaneously (1 ensures puzzle focus).")]
         [SerializeField] private int maxSimultaneousCapsules = 1;
 
+        [Header("Capsule Mission Allowance")]
+        [SerializeField] private int remainingCapsules = MaxCapsulesPerMission;
+        [SerializeField] private int capsulesUsed = 0;
+
         [Header("Debug & Gizmos")]
         [Tooltip("Draw aim direction and predicted launch vector in Scene view.")]
         [SerializeField] private bool drawAimGizmo = true;
@@ -52,10 +65,15 @@ namespace NebulaRelay.Delivery
         private float nextFireTime = 0f;
         private int activeCapsulesCount = 0;
         private Vector2 aimDirection = Vector2.up;
+        private Coroutine outOfCapsulesCheckRoutine;
 
-        // Public Interface for Trajectory Preview & HUD
+        // Public Interface for Trajectory Preview, LevelManager & HUD
         public Vector2 AimDirection => aimDirection;
         public float LaunchSpeed => launchSpeed;
+        public int RemainingCapsules => remainingCapsules;
+        public int CapsulesUsed => capsulesUsed;
+        public int MaxCapsules => MaxCapsulesPerMission;
+
         public Vector2 CalculatedLaunchVelocity
         {
             get
@@ -68,26 +86,50 @@ namespace NebulaRelay.Delivery
                 return vel;
             }
         }
+
         public Vector3 LaunchPosition => GetLaunchPosition();
-        public bool CanFire => Time.time >= nextFireTime && activeCapsulesCount < maxSimultaneousCapsules;
+        public bool CanFire => remainingCapsules > 0 
+                            && activeCapsulesCount < maxSimultaneousCapsules 
+                            && Time.time >= nextFireTime 
+                            && Time.timeScale > 0.001f
+                            && (LevelManager.Instance == null || LevelManager.Instance.State == LevelState.InFlight);
+
         public int ActiveCapsulesCount => activeCapsulesCount;
         public int MaxSimultaneousCapsules => maxSimultaneousCapsules;
+
+        public event Action<int, int> OnCapsuleCountChanged; // (remaining, max)
 
         private void Awake()
         {
             mainCamera = Camera.main;
             droneController = GetComponent<DroneController>();
+            ResetCapsules();
+        }
+
+        public void ResetCapsules()
+        {
+            remainingCapsules = MaxCapsulesPerMission;
+            capsulesUsed = 0;
+            activeCapsulesCount = 0;
+            nextFireTime = 0f;
+            if (outOfCapsulesCheckRoutine != null)
+            {
+                StopCoroutine(outOfCapsulesCheckRoutine);
+                outOfCapsulesCheckRoutine = null;
+            }
+            OnCapsuleCountChanged?.Invoke(remainingCapsules, MaxCapsulesPerMission);
         }
 
         private void Update()
         {
+            // Block input while paused or game has ended
+            if (Time.timeScale <= 0.001f) return;
+            if (LevelManager.Instance != null && LevelManager.Instance.State != LevelState.InFlight) return;
+
             UpdateAimDirection();
             HandleFireInput();
         }
 
-        /// <summary>
-        /// Calculates normalized aim vector pointing from the launch point to the mouse cursor.
-        /// </summary>
         private void UpdateAimDirection()
         {
             if (mainCamera == null)
@@ -115,14 +157,10 @@ namespace NebulaRelay.Delivery
             }
         }
 
-        /// <summary>
-        /// Checks for fire input and rate limits firing.
-        /// </summary>
         private void HandleFireInput()
         {
             bool fireRequested = false;
 
-            // Check Keyboard key (Space by default)
             if (Keyboard.current != null)
             {
                 if (fireKey == KeyCode.Space && Keyboard.current.spaceKey.wasPressedThisFrame) fireRequested = true;
@@ -139,13 +177,15 @@ namespace NebulaRelay.Delivery
             }
         }
 
-        /// <summary>
-        /// Validates firing constraints and spawns the capsule.
-        /// </summary>
         public bool TryFireCapsule()
         {
             if (!CanFire)
             {
+                if (remainingCapsules <= 0)
+                {
+                    AudioManager.Instance?.PlayMissionLocked();
+                    LevelManager.Instance?.SetHUDMessage("NO CAPSULES REMAINING!", 1.5f, true);
+                }
                 return false;
             }
 
@@ -155,9 +195,16 @@ namespace NebulaRelay.Delivery
 
         private void FireCapsule()
         {
+            // Strictly consume 1 capsule
+            remainingCapsules = Mathf.Max(0, remainingCapsules - 1);
+            capsulesUsed++;
             nextFireTime = Time.time + fireCooldown;
-            Vector3 spawnPos = GetLaunchPosition();
 
+            OnCapsuleCountChanged?.Invoke(remainingCapsules, MaxCapsulesPerMission);
+            AudioManager.Instance?.PlayLaunch();
+            AudioManager.Instance?.SetProjectileInFlight(true);
+
+            Vector3 spawnPos = GetLaunchPosition();
             GameObject capsuleObj;
 
             if (capsulePrefab != null)
@@ -166,7 +213,6 @@ namespace NebulaRelay.Delivery
             }
             else
             {
-                // Fallback: Dynamically generate an EnergyCapsule GameObject if prefab is unassigned
                 capsuleObj = new GameObject("EnergyCapsule_Instance");
                 capsuleObj.transform.position = spawnPos;
                 capsuleObj.AddComponent<EnergyCapsule>();
@@ -178,10 +224,8 @@ namespace NebulaRelay.Delivery
                 capsuleComponent = capsuleObj.AddComponent<EnergyCapsule>();
             }
 
-            // Launch with calculated velocity
             capsuleComponent.Launch(CalculatedLaunchVelocity);
 
-            // Track active count & hook destruction cleanup
             activeCapsulesCount++;
             capsuleComponent.OnDestroyed += HandleCapsuleDestroyed;
         }
@@ -190,6 +234,34 @@ namespace NebulaRelay.Delivery
         {
             capsule.OnDestroyed -= HandleCapsuleDestroyed;
             activeCapsulesCount = Mathf.Max(0, activeCapsulesCount - 1);
+
+            if (activeCapsulesCount == 0)
+            {
+                AudioManager.Instance?.SetProjectileInFlight(false);
+            }
+
+            // Check if player has exhausted all capsules with no viable way to complete objective
+            if (remainingCapsules <= 0 && activeCapsulesCount == 0)
+            {
+                if (outOfCapsulesCheckRoutine != null) StopCoroutine(outOfCapsulesCheckRoutine);
+                outOfCapsulesCheckRoutine = StartCoroutine(CheckOutOfCapsulesFailureRoutine());
+            }
+        }
+
+        private IEnumerator CheckOutOfCapsulesFailureRoutine()
+        {
+            yield return new WaitForSeconds(1.5f);
+
+            // If receiver still not delivered and level in flight, trigger mission failure
+            RelayStation relay = LevelManager.Instance != null ? LevelManager.Instance.Relay : FindFirstObjectByType<RelayStation>();
+            if (relay != null && relay.State == RelayState.Inactive)
+            {
+                if (LevelManager.Instance != null && LevelManager.Instance.State == LevelState.InFlight)
+                {
+                    LevelManager.Instance.OnMissionFailed("NO CAPSULES REMAINING");
+                }
+            }
+            outOfCapsulesCheckRoutine = null;
         }
 
         private Vector3 GetLaunchPosition()
@@ -208,7 +280,6 @@ namespace NebulaRelay.Delivery
             Vector3 origin = Application.isPlaying ? GetLaunchPosition() : transform.position;
             Vector3 end = origin + (Vector3)(aimDirection * 2.0f);
 
-            // Aim direction line (Orange/Gold)
             Gizmos.color = new Color(1f, 0.75f, 0.1f, 0.9f);
             Gizmos.DrawLine(origin, end);
             Gizmos.DrawWireSphere(end, 0.1f);

@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using NebulaRelay.Player;
 using NebulaRelay.Core;
+using NebulaRelay.Effects;
 
 namespace NebulaRelay.World
 {
@@ -15,15 +16,15 @@ namespace NebulaRelay.World
     }
 
     /// <summary>
-    /// RelayStation represents an orbital energy relay station.
-    /// Progresses through 4 states: Inactive -> Energy Delivered -> Ready -> Activated.
-    /// Requires an EnergyCapsule hit first, then safe drone docking speed (<= 1.5 units/s).
+    /// RelayStation represents the mission destination exit goal.
+    /// Strictly requires all mission relays to be synchronized AND energy capsule delivered
+    /// before safe docking (<= 1.5 m/s) can complete the mission.
     /// </summary>
     [SelectionBase]
     public class RelayStation : MonoBehaviour
     {
         [Header("Relay Identity")]
-        [Tooltip("The relay identifier (e.g. 1 for Relay 01).")]
+        [Tooltip("The relay identifier (e.g. 1 for Sector 01).")]
         [SerializeField] private int relayIndex = 1;
 
         [Header("Docking Requirements")]
@@ -34,15 +35,17 @@ namespace NebulaRelay.World
         [SerializeField] private float activationZoneRadius = 2.2f;
 
         [Header("Receiver Link")]
-        [Tooltip("The EnergyReceiver linked to this relay. If unassigned, finds one in children or nearby.")]
+        [Tooltip("The EnergyReceiver linked to this relay.")]
         [SerializeField] private EnergyReceiver receiver;
 
         [Header("Visual Elements")]
         [SerializeField] private SpriteRenderer stationRenderer;
         [SerializeField] private SpriteRenderer beaconRenderer;
+        [SerializeField] private Color lockedColor = new Color(0.85f, 0.15f, 0.15f, 1f); // Red locked glow
         [SerializeField] private Color inactiveColor = new Color(0.2f, 0.3f, 0.45f, 1f); // Dark industrial blue
-        [SerializeField] private Color deliveredColor = new Color(1f, 0.75f, 0.1f, 1f); // Amber / Power charging
-        [SerializeField] private Color activatedColor = new Color(0f, 0.9f, 1f, 1f); // Restored neon cyan/green
+        [SerializeField] private Color deliveredColor = new Color(1f, 0.75f, 0.1f, 1f); // Amber / charging
+        [SerializeField] private Color readyUnlockedColor = new Color(0f, 0.95f, 0.5f, 1f); // Unlocked neon green
+        [SerializeField] private Color activatedColor = new Color(0f, 0.9f, 1f, 1f); // Restored neon cyan
 
         // State
         public int RelayIndex => relayIndex;
@@ -51,19 +54,16 @@ namespace NebulaRelay.World
         public float ActivationZoneRadius => activationZoneRadius;
         public bool IsActivated => State == RelayState.Activated;
 
-        public bool IsDroneInActivationRadius(Vector3 dronePosition)
-        {
-            return Vector2.Distance(transform.position, dronePosition) <= activationZoneRadius;
-        }
-
-        // Feedback message
-        private string speedWarningMessage = "";
-        private float warningExpireTime = 0f;
+        private float lastLockWarningTime = -5f;
+        private CircleCollider2D activationTrigger;
 
         // Events
         public event Action<RelayStation> OnRelayActivated;
 
-        private CircleCollider2D activationTrigger;
+        public bool IsDroneInActivationRadius(Vector3 dronePosition)
+        {
+            return Vector2.Distance(transform.position, dronePosition) <= activationZoneRadius;
+        }
 
         private void Awake()
         {
@@ -96,7 +96,6 @@ namespace NebulaRelay.World
 
         private void SetupActivationTrigger()
         {
-            // Ensure a trigger collider dedicated to the drone activation zone exists
             CircleCollider2D[] colliders = GetComponents<CircleCollider2D>();
             foreach (var c in colliders)
             {
@@ -118,59 +117,108 @@ namespace NebulaRelay.World
 
         private void HandleEnergyDelivered(EnergyReceiver r)
         {
-            if (State != RelayState.Inactive) return;
+            if (State == RelayState.Activated) return;
 
             State = RelayState.ReadyForDroneActivation;
             UpdateVisuals();
 
-            // Set global banner via LevelManager if available
-            LevelManager.Instance?.SetHUDMessage("ENERGY DELIVERED! Approach relay below 1.5 speed to activate.", 3.5f, false);
+            bool allRelaysSynced = IsAllRelaysSynchronized();
+            if (!allRelaysSynced)
+            {
+                int remaining = GetRemainingRelaysCount();
+                LevelManager.Instance?.SetHUDMessage($"ENERGY STORED! BUT MISSION LOCKED — {remaining} RELAYS REMAINING", 4.0f, true);
+            }
+            else
+            {
+                LevelManager.Instance?.SetHUDMessage("EXIT UNLOCKED! Approach dock below 1.5 m/s to complete mission.", 4.0f, false);
+            }
         }
 
         private void OnTriggerStay2D(Collider2D other)
         {
-            if (State != RelayState.ReadyForDroneActivation) return;
+            if (State == RelayState.Activated) return;
 
-            // Check if player drone is inside activation zone
             DroneController drone = other.GetComponent<DroneController>();
-            if (drone == null)
-            {
-                drone = other.GetComponentInParent<DroneController>();
-            }
+            if (drone == null) drone = other.GetComponentInParent<DroneController>();
 
             if (drone != null || other.CompareTag("Player"))
             {
-                float currentSpeed = drone != null ? drone.Speed : 0f;
+                // RULE 1: STRICT COMPULSORY RELAY CHECK
+                if (!IsAllRelaysSynchronized())
+                {
+                    int remaining = GetRemainingRelaysCount();
+                    if (Time.time - lastLockWarningTime > 2.0f)
+                    {
+                        lastLockWarningTime = Time.time;
+                        LevelManager.Instance?.SetHUDMessage($"MISSION LOCKED — {remaining} RELAYS REMAINING", 2.5f, true);
+                        AudioManager.Instance?.PlayMissionLocked();
+                    }
+                    return; // EXIT LOCKED! Cannot complete!
+                }
 
+                // RULE 2: CAPSULE DELIVERY CHECK
+                if (State == RelayState.Inactive)
+                {
+                    if (Time.time - lastLockWarningTime > 2.0f)
+                    {
+                        lastLockWarningTime = Time.time;
+                        LevelManager.Instance?.SetHUDMessage("EXIT LOCKED — LAUNCH ENERGY CAPSULE INTO RECEIVER DISH!", 2.5f, true);
+                        AudioManager.Instance?.PlayMissionLocked();
+                    }
+                    return;
+                }
+
+                // RULE 3: DOCKING SPEED CHECK (<= 1.5 m/s)
+                float currentSpeed = drone != null ? drone.Speed : 0f;
                 if (currentSpeed <= maxSafeSpeed)
                 {
-                    // Successful activation!
                     ActivateRelay();
                 }
                 else
                 {
-                    // Moving too fast: show warning
                     ShowSpeedWarning(currentSpeed);
                 }
             }
         }
 
+        private bool IsAllRelaysSynchronized()
+        {
+            if (LevelManager.Instance != null && LevelManager.Instance.Rings != null)
+            {
+                return LevelManager.Instance.Rings.AllRelaysSynchronized;
+            }
+            return true;
+        }
+
+        private int GetRemainingRelaysCount()
+        {
+            if (LevelManager.Instance != null && LevelManager.Instance.Rings != null)
+            {
+                return LevelManager.Instance.Rings.RemainingRelays;
+            }
+            return 0;
+        }
+
         private void ShowSpeedWarning(float currentSpeed)
         {
-            speedWarningMessage = $"SLOW DOWN! Speed: {currentSpeed:F1} / Safe: ≤ {maxSafeSpeed:F1}";
-            warningExpireTime = Time.time + 1.5f;
-
-            LevelManager.Instance?.SetHUDMessage(speedWarningMessage, 1.5f, true);
+            string msg = $"SLOW DOWN! Speed: {currentSpeed:F1} / Safe: ≤ {maxSafeSpeed:F1} m/s";
+            LevelManager.Instance?.SetHUDMessage(msg, 1.5f, true);
         }
 
         private void ActivateRelay()
         {
             if (State == RelayState.Activated) return;
 
+            // Extra safety verification: every relay MUST be synchronized
+            if (!IsAllRelaysSynchronized())
+            {
+                return;
+            }
+
             State = RelayState.Activated;
             UpdateVisuals();
 
-            LevelManager.Instance?.SetHUDMessage($"RELAY {relayIndex} RESTORED AND ONLINE!", 4.0f, false);
+            LevelManager.Instance?.SetHUDMessage($"RELAY {relayIndex} RESTORED AND SYNCHRONIZED!", 4.0f, false);
             LevelManager.Instance?.OnRelayActivated(this);
             OnRelayActivated?.Invoke(this);
 
@@ -179,101 +227,54 @@ namespace NebulaRelay.World
 
         private IEnumerator ActivationCelebrationRoutine()
         {
-            Vector3 originalScale = transform.localScale;
-            for (float t = 0; t < 0.6f; t += Time.deltaTime)
+            Vector3 origScale = transform.localScale;
+            float duration = 1.2f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
             {
-                float scaleMod = 1f + Mathf.Sin(t * Mathf.PI * 4f) * 0.15f;
-                transform.localScale = originalScale * scaleMod;
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float pulse = 1f + Mathf.Sin(t * Mathf.PI * 4f) * 0.1f;
+                transform.localScale = origScale * pulse;
                 yield return null;
             }
-            transform.localScale = originalScale;
+
+            transform.localScale = origScale;
         }
 
         private void UpdateVisuals()
         {
-            Color targetColor = inactiveColor;
-            switch (State)
+            if (stationRenderer != null)
             {
-                case RelayState.Inactive:
-                    targetColor = inactiveColor;
-                    break;
-                case RelayState.EnergyDelivered:
-                case RelayState.ReadyForDroneActivation:
-                    targetColor = deliveredColor;
-                    break;
-                case RelayState.Activated:
-                    targetColor = activatedColor;
-                    break;
+                bool synced = IsAllRelaysSynchronized();
+                if (State == RelayState.Activated)
+                {
+                    stationRenderer.color = activatedColor;
+                }
+                else if (State == RelayState.ReadyForDroneActivation)
+                {
+                    stationRenderer.color = synced ? readyUnlockedColor : deliveredColor;
+                }
+                else
+                {
+                    stationRenderer.color = inactiveColor;
+                }
             }
 
-            if (stationRenderer != null) stationRenderer.color = targetColor;
             if (beaconRenderer != null)
             {
-                beaconRenderer.color = State == RelayState.Activated ? activatedColor : targetColor;
-                beaconRenderer.enabled = State != RelayState.Inactive;
+                bool synced = IsAllRelaysSynchronized();
+                beaconRenderer.color = (State == RelayState.Activated) ? activatedColor
+                    : ((State == RelayState.ReadyForDroneActivation && synced) ? readyUnlockedColor : (synced ? deliveredColor : lockedColor));
             }
         }
 
         private void EnsureVisibleVisuals()
         {
-            if (stationRenderer == null)
-            {
-                stationRenderer = GetComponent<SpriteRenderer>();
-                if (stationRenderer == null) stationRenderer = gameObject.AddComponent<SpriteRenderer>();
-            }
-
-            if (stationRenderer.sprite == null)
-            {
-                stationRenderer.sprite = CreateProceduralRelaySprite();
-            }
-
-            stationRenderer.sortingOrder = 1;
-        }
-
-        private static Sprite CreateProceduralRelaySprite()
-        {
-            int size = 96;
-            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Bilinear;
-
-            Color transparent = new Color(0, 0, 0, 0);
-            Color body = new Color(0.2f, 0.35f, 0.5f, 1f);
-            Color solar = new Color(0.05f, 0.6f, 0.8f, 1f);
-            Color core = Color.white;
-
-            // Clear
-            for (int y = 0; y < size; y++)
-                for (int x = 0; x < size; x++)
-                    tex.SetPixel(x, y, transparent);
-
-            // Satellite body & solar wings
-            for (int y = 30; y < 66; y++)
-            {
-                for (int x = 12; x < 84; x++)
-                {
-                    if (x < 36 || x > 60)
-                        tex.SetPixel(x, y, solar);
-                    else
-                        tex.SetPixel(x, y, body);
-                }
-            }
-
-            // Central beacon orb
-            Vector2 center = new Vector2(48, 48);
-            for (int y = 38; y < 58; y++)
-                for (int x = 38; x < 58; x++)
-                    if (Vector2.Distance(new Vector2(x, y), center) <= 8f)
-                        tex.SetPixel(x, y, core);
-
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32f);
-        }
-
-        private void OnDrawGizmos()
-        {
-            // Draw activation zone in Scene view
-            Gizmos.color = State == RelayState.Activated ? Color.cyan : (State == RelayState.ReadyForDroneActivation ? Color.yellow : Color.gray);
-            Gizmos.DrawWireSphere(transform.position, activationZoneRadius);
+            if (stationRenderer == null) stationRenderer = GetComponent<SpriteRenderer>();
+            if (stationRenderer == null) stationRenderer = gameObject.AddComponent<SpriteRenderer>();
+            stationRenderer.sortingOrder = 2;
         }
     }
 }

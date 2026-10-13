@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using NebulaRelay.Player;
+using NebulaRelay.Delivery;
 
 namespace NebulaRelay.World
 {
@@ -12,8 +13,9 @@ namespace NebulaRelay.World
     }
 
     /// <summary>
-    /// RingGate represents an individual orbital ring checkpoint.
-    /// Uses a trigger collider to detect when the player drone passes through.
+    /// RingGate represents an individual orbital relay checkpoint.
+    /// Uses a trigger collider to detect when the player drone or launched capsule passes through.
+    /// Each relay activates only once per mission.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     [SelectionBase]
@@ -31,7 +33,7 @@ namespace NebulaRelay.World
         [SerializeField] private Color inactiveColor = new Color(0.1f, 0.4f, 0.6f, 0.4f); // Dimmed blue
 
         [Tooltip("Color once successfully passed in correct sequence.")]
-        [SerializeField] private Color completedColor = new Color(0.2f, 1f, 0.4f, 1f); // Bright neon green
+        [SerializeField] private Color completedColor = new Color(0.2f, 1f, 0.5f, 1f); // Bright neon green
 
         [Tooltip("Flash color when crossed out of order.")]
         [SerializeField] private Color wrongOrderColor = new Color(1f, 0.2f, 0.2f, 1f); // Warning red
@@ -42,13 +44,18 @@ namespace NebulaRelay.World
         // State
         public int RingOrder => ringOrder;
         public RingState State { get; private set; } = RingState.Inactive;
+        public bool IsActivated => State == RingState.Completed;
+
         private Collider2D col;
         private Coroutine flashRoutine;
+        private Coroutine activationGlowRoutine;
+        private Vector3 initialScale;
 
         private void Awake()
         {
             col = GetComponent<Collider2D>();
-            col.isTrigger = true; // Must be trigger
+            col.isTrigger = true;
+            initialScale = transform.localScale;
 
             if (spriteRenderer == null)
             {
@@ -60,7 +67,6 @@ namespace NebulaRelay.World
 
         private void Start()
         {
-            // Initial state visual update
             UpdateVisuals();
         }
 
@@ -68,6 +74,40 @@ namespace NebulaRelay.World
         {
             State = newState;
             UpdateVisuals();
+        }
+
+        /// <summary>
+        /// Plays an activation pulse animation and glowing surge when passed.
+        /// </summary>
+        public void PlayActivationGlow()
+        {
+            if (activationGlowRoutine != null) StopCoroutine(activationGlowRoutine);
+            activationGlowRoutine = StartCoroutine(ActivationGlowRoutine());
+        }
+
+        private IEnumerator ActivationGlowRoutine()
+        {
+            float elapsed = 0f;
+            float duration = 0.45f;
+            Vector3 peakScale = initialScale * 1.35f;
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = Color.white; // Flash white core
+            }
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                float scaleT = Mathf.Sin(t * Mathf.PI);
+                transform.localScale = Vector3.Lerp(initialScale, peakScale, scaleT);
+                yield return null;
+            }
+
+            transform.localScale = initialScale;
+            UpdateVisuals();
+            activationGlowRoutine = null;
         }
 
         /// <summary>
@@ -84,16 +124,12 @@ namespace NebulaRelay.World
             if (spriteRenderer != null)
             {
                 spriteRenderer.color = wrongOrderColor;
-                transform.localScale = Vector3.one * 1.15f;
+                transform.localScale = initialScale * 1.15f;
             }
 
             yield return new WaitForSeconds(0.4f);
 
-            if (spriteRenderer != null)
-            {
-                transform.localScale = Vector3.one;
-            }
-
+            transform.localScale = initialScale;
             UpdateVisuals();
             flashRoutine = null;
         }
@@ -118,14 +154,31 @@ namespace NebulaRelay.World
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            // Detect if the colliding object is the player drone
+            // Do not react if already completed
+            if (State == RingState.Completed) return;
+
+            bool isPlayerOrCapsule = false;
+
+            // 1. Drone passage
             DroneController drone = other.GetComponent<DroneController>();
-            if (drone == null)
+            if (drone == null) drone = other.GetComponentInParent<DroneController>();
+            if (drone != null || other.CompareTag("Player"))
             {
-                drone = other.GetComponentInParent<DroneController>();
+                isPlayerOrCapsule = true;
             }
 
-            if (drone != null || other.CompareTag("Player"))
+            // 2. Launched Energy Capsule passage
+            if (!isPlayerOrCapsule)
+            {
+                EnergyCapsule capsule = other.GetComponent<EnergyCapsule>();
+                if (capsule == null) capsule = other.GetComponentInParent<EnergyCapsule>();
+                if (capsule != null && !capsule.IsDelivered)
+                {
+                    isPlayerOrCapsule = true;
+                }
+            }
+
+            if (isPlayerOrCapsule)
             {
                 RingManager manager = FindFirstObjectByType<RingManager>();
                 if (manager != null)
@@ -144,13 +197,22 @@ namespace NebulaRelay.World
 
             if (spriteRenderer.sprite == null)
             {
-                spriteRenderer.sprite = CreateProceduralRingSprite();
+                spriteRenderer.CreateProceduralRingSprite();
             }
 
             spriteRenderer.sortingOrder = 3;
         }
 
-        private static Sprite CreateProceduralRingSprite()
+        private void OnDrawGizmos()
+        {
+            Gizmos.color = State == RingState.Completed ? Color.green : (State == RingState.Active ? Color.cyan : Color.gray);
+            Gizmos.DrawWireSphere(transform.position, 1.0f);
+        }
+    }
+
+    internal static class RingGateExtensions
+    {
+        public static void CreateProceduralRingSprite(this SpriteRenderer sr)
         {
             int size = 64;
             Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
@@ -180,13 +242,7 @@ namespace NebulaRelay.World
             }
 
             tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32f);
-        }
-
-        private void OnDrawGizmos()
-        {
-            Gizmos.color = State == RingState.Completed ? Color.green : (State == RingState.Active ? Color.cyan : Color.gray);
-            Gizmos.DrawWireSphere(transform.position, 1.0f);
+            sr.sprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32f);
         }
     }
 }

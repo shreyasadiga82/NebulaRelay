@@ -4,6 +4,8 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using NebulaRelay.Player;
 using NebulaRelay.World;
+using NebulaRelay.Delivery;
+using NebulaRelay.Effects;
 
 namespace NebulaRelay.Core
 {
@@ -15,17 +17,20 @@ namespace NebulaRelay.Core
     }
 
     /// <summary>
-    /// LevelManager coordinates all objectives, UI messages, and win/fail states for the active scene.
+    /// LevelManager coordinates all mission objectives, 120-second countdown timer,
+    /// compulsory relay checks, scoring, and one-time win/fail state transitions.
     /// </summary>
     public class LevelManager : MonoBehaviour
     {
         public static LevelManager Instance { get; private set; }
 
+        public const float MissionDurationSeconds = 120.0f; // 2 minutes
+
         [Header("Level Information")]
-        [Tooltip("The level index (1, 2, or 3).")]
+        [Tooltip("The level index (1, 2, 3, 4, 5).")]
         [SerializeField] private int levelNumber = 1;
 
-        [Tooltip("Display name for the level (e.g. First Signal, The Debris Field, The Last Transmission).")]
+        [Tooltip("Display name for the level.")]
         [SerializeField] private string levelTitle = "First Signal";
 
         [Header("Scene References")]
@@ -33,6 +38,7 @@ namespace NebulaRelay.Core
         [SerializeField] private BatteryManager battery;
         [SerializeField] private RingManager ringManager;
         [SerializeField] private RelayStation relayStation;
+        [SerializeField] private CapsuleLauncher launcher;
 
         [Header("Flight Corridor Boundaries")]
         [Tooltip("Corridor start X coordinate.")]
@@ -41,7 +47,7 @@ namespace NebulaRelay.Core
         [SerializeField] private float maxCorridorX = 18f;
         [Tooltip("Safety margin beyond start/end.")]
         [SerializeField] private float marginX = 2.0f;
-        [Tooltip("Half-height of corridor: orthoSize - 1.")]
+        [Tooltip("Half-height of corridor.")]
         [SerializeField] private float corridorMarginY = 6.5f;
 
         public float FlightMinX => minCorridorX - marginX;
@@ -49,25 +55,19 @@ namespace NebulaRelay.Core
         public float FlightMinY => -corridorMarginY;
         public float FlightMaxY => corridorMarginY;
 
-        public void SetCorridorBounds(float minX, float maxX, float margin = 2.0f, float maxY = 6.5f)
-        {
-            minCorridorX = minX;
-            maxCorridorX = maxX;
-            marginX = margin;
-            corridorMarginY = maxY;
-        }
-
-        // Level State
+        // Level State & Mission Timer
         public LevelState State { get; private set; } = LevelState.InFlight;
         public int LevelNumber => levelNumber;
         public string LevelTitle => levelTitle;
+        public float RemainingTime { get; private set; } = MissionDurationSeconds;
+        public float MissionDuration => MissionDurationSeconds;
+        public float ElapsedTime => MissionDurationSeconds - RemainingTime;
+
         public DroneController Drone => drone;
         public BatteryManager Battery => battery;
         public RingManager Rings => ringManager;
         public RelayStation Relay => relayStation;
-
-        // Current Objective Text
-        public string CurrentObjectiveText => GetObjectiveText();
+        public CapsuleLauncher Launcher => launcher;
 
         // Banner Alert System
         public string CurrentAlertMessage { get; private set; } = "";
@@ -77,42 +77,88 @@ namespace NebulaRelay.Core
         // Failure Reason
         public string FailureReason { get; private set; } = "";
 
+        // Audio countdown state
+        private bool warning10sPlayed = false;
+        private int lastSecondsWarningPlayed = -1;
+
         // Events
         public event Action OnLevelCompleted;
         public event Action<string> OnLevelFailed;
+        public event Action<float> OnTimerTick;
 
         private void Awake()
         {
             Instance = this;
 
-            // Auto-locate scene references if not wired in Inspector
             if (drone == null) drone = FindFirstObjectByType<DroneController>();
             if (battery == null) battery = FindFirstObjectByType<BatteryManager>();
             if (ringManager == null) ringManager = FindFirstObjectByType<RingManager>();
             if (relayStation == null) relayStation = FindFirstObjectByType<RelayStation>();
+            if (launcher == null && drone != null) launcher = drone.GetComponent<CapsuleLauncher>();
+            if (launcher == null) launcher = FindFirstObjectByType<CapsuleLauncher>();
+
+            // Ensure ScoreManager exists
+            if (FindFirstObjectByType<ScoreManager>() == null)
+            {
+                gameObject.AddComponent<ScoreManager>();
+            }
+
+            RemainingTime = MissionDurationSeconds;
+            State = LevelState.InFlight;
         }
 
         private void Start()
         {
-            SetHUDMessage($"MISSION {levelNumber}: {levelTitle.ToUpper()}", 3.0f, false);
+            SetHUDMessage($"MISSION {levelNumber:D2}: {levelTitle.ToUpper()}", 3.0f, false);
         }
 
         private void Update()
         {
+            // Update 120-second countdown timer during flight
+            if (State == LevelState.InFlight && Time.timeScale > 0.001f)
+            {
+                RemainingTime = Mathf.Max(0f, RemainingTime - Time.deltaTime);
+                OnTimerTick?.Invoke(RemainingTime);
+
+                // Audio warnings
+                CheckCountdownAudioWarnings();
+
+                // Failure condition: Time Expired
+                if (RemainingTime <= 0f)
+                {
+                    OnMissionFailed("TIME EXPIRED");
+                }
+            }
+
+            // Quick keyboard shortcuts
             var kb = Keyboard.current;
             if (kb != null)
             {
-                // Quick restart key (R)
                 if (kb.rKey.wasPressedThisFrame)
                 {
                     RestartLevel();
                 }
 
-                // Quick advance key on completion (Space or Return)
                 if (State == LevelState.Completed && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame))
                 {
                     AdvanceToNextLevel();
                 }
+            }
+        }
+
+        private void CheckCountdownAudioWarnings()
+        {
+            int wholeSec = Mathf.CeilToInt(RemainingTime);
+
+            if (wholeSec <= 10 && !warning10sPlayed && wholeSec > 5)
+            {
+                warning10sPlayed = true;
+                AudioManager.Instance?.PlayCountdownWarning(false);
+            }
+            else if (wholeSec <= 5 && wholeSec >= 1 && wholeSec != lastSecondsWarningPlayed)
+            {
+                lastSecondsWarningPlayed = wholeSec;
+                AudioManager.Instance?.PlayCountdownWarning(true);
             }
         }
 
@@ -128,12 +174,36 @@ namespace NebulaRelay.Core
             return Time.time < alertExpireTime && !string.IsNullOrEmpty(CurrentAlertMessage);
         }
 
+        public bool AreAllRelaysSynchronized()
+        {
+            if (ringManager != null)
+            {
+                return ringManager.AllRelaysSynchronized;
+            }
+            return true;
+        }
+
         public void OnRelayActivated(RelayStation relay)
         {
             if (State != LevelState.InFlight) return;
 
+            // MANDATORY CHECK: Every compulsory relay must be active!
+            if (!AreAllRelaysSynchronized())
+            {
+                int remaining = ringManager != null ? ringManager.RemainingRelays : 0;
+                SetHUDMessage($"MISSION LOCKED — {remaining} RELAYS REMAINING", 3.0f, true);
+                AudioManager.Instance?.PlayMissionLocked();
+                return;
+            }
+
             State = LevelState.Completed;
-            SetHUDMessage($"RELAY {levelNumber} RESTORED! PRESS [SPACE] TO CONTINUE", 10.0f, false);
+
+            // Finalize Score
+            int capsRemaining = launcher != null ? launcher.RemainingCapsules : 0;
+            ScoreManager.Instance?.FinalizeMissionScore(RemainingTime, capsRemaining);
+
+            AudioManager.Instance?.PlayVictory();
+            SetHUDMessage($"SECTOR {levelNumber:D2} RESTORED! MISSION ACCOMPLISHED!", 10.0f, false);
 
             if (GameManager.Instance != null)
             {
@@ -149,13 +219,16 @@ namespace NebulaRelay.Core
 
             State = LevelState.Failed;
             FailureReason = reason;
-            SetHUDMessage($"MISSION FAILED: {reason}\nPRESS [R] TO RESTART", 20.0f, true);
+
+            AudioManager.Instance?.PlayFailure();
+            SetHUDMessage($"MISSION FAILED: {reason}\nPRESS [R] TO RETRY", 20.0f, true);
 
             OnLevelFailed?.Invoke(reason);
         }
 
         public void RestartLevel()
         {
+            Time.timeScale = 1f;
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.RestartCurrentLevel();
@@ -168,7 +241,10 @@ namespace NebulaRelay.Core
 
         public void AdvanceToNextLevel()
         {
-            if (levelNumber < 3)
+            Time.timeScale = 1f;
+            int maxSectors = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;
+
+            if (levelNumber < maxSectors)
             {
                 int nextLevel = levelNumber + 1;
                 string nextSceneName = $"Level_{nextLevel:D2}";
@@ -184,7 +260,6 @@ namespace NebulaRelay.Core
             }
             else
             {
-                // Grand Victory! Return to Main Menu or Victory Screen
                 if (GameManager.Instance != null)
                 {
                     GameManager.Instance.SetState(GameState.Victory);
@@ -197,13 +272,13 @@ namespace NebulaRelay.Core
             }
         }
 
-        private string GetObjectiveText()
+        public string GetObjectiveText()
         {
             if (State == LevelState.Completed)
             {
-                return levelNumber >= 3 
-                    ? "MISSION ACCOMPLISHED! ORBITAL NETWORK FULLY RESTORED!" 
-                    : "RELAY ONLINE! Press [SPACE] for Next Sector.";
+                return levelNumber >= 5 
+                    ? "MISSION ACCOMPLISHED! GALACTIC NETWORK FULLY RESTORED!" 
+                    : "RELAY SYNCHRONIZED! Press [SPACE] for Next Sector.";
             }
 
             if (State == LevelState.Failed)
@@ -211,10 +286,10 @@ namespace NebulaRelay.Core
                 return $"FAILED: {FailureReason} — Press [R] to Restart.";
             }
 
-            // Step 1: Rings
-            if (ringManager != null && !ringManager.AllRingsCompleted && ringManager.TotalRings > 0)
+            // Step 1: Compulsory Relays
+            if (ringManager != null && !ringManager.AllRelaysSynchronized && ringManager.TotalRelays > 0)
             {
-                return $"STEP 1: Navigate through Orbital Ring {ringManager.CurrentExpectedOrder}/{ringManager.TotalRings}";
+                return $"STEP 1: Synchronize Compulsory Relays ({ringManager.ActivatedRelaysCount}/{ringManager.TotalRelays})";
             }
 
             // Step 2: Capsule Delivery
@@ -227,7 +302,7 @@ namespace NebulaRelay.Core
             if (relayStation != null && (relayStation.State == RelayState.ReadyForDroneActivation || relayStation.State == RelayState.EnergyDelivered))
             {
                 float safeSpeed = relayStation.MaxSafeSpeed;
-                return $"STEP 3: Approach Relay Activation Zone at Safe Speed (≤ {safeSpeed:F1})";
+                return $"STEP 3: Approach Station Docking Bay at Safe Speed (≤ {safeSpeed:F1} m/s)";
             }
 
             return "RESTORE ORBITAL RELAY";

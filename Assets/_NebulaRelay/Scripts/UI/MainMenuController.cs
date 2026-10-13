@@ -1,6 +1,8 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using NebulaRelay.Core;
+using NebulaRelay.Effects;
 
 namespace NebulaRelay.UI
 {
@@ -14,8 +16,7 @@ namespace NebulaRelay.UI
     /// <summary>
     /// MainMenuController provides the cinematic neon sci-fi title and mission selection screen
     /// matching the reference image designs (Screens 1 & 2).
-    /// Scaled via UIScale (1280x720 reference) for readability across laptops and high-res displays.
-    /// Dynamically scales MainMenu_CosmicBG to cover the screen on all aspect ratios.
+    /// Includes comprehensive Settings menu powered by SettingsManager and PlayerPrefs.
     /// </summary>
     [SelectionBase]
     public class MainMenuController : MonoBehaviour
@@ -24,15 +25,15 @@ namespace NebulaRelay.UI
         [SerializeField] private Color cyanNeon = new Color(0f, 0.92f, 1f, 1f);
         [SerializeField] private Color amberNeon = new Color(1f, 0.75f, 0f, 1f);
         [SerializeField] private Color greenNeon = new Color(0.18f, 0.95f, 0.5f, 1f);
+        [SerializeField] private Color redDanger = new Color(1f, 0.22f, 0.32f, 1f);
         [SerializeField] private Color panelDark = new Color(0.03f, 0.05f, 0.1f, 0.92f);
 
         private MenuState currentState = MenuState.Title;
         private int selectedMissionIndex = 1; // 1 to 5
-        private float audioVolume = 1.0f;
         private float viewWidth = 1280f;
         private float viewHeight = 720f;
 
-        // Styles (All font sizes in 1280x720 reference space >= 14)
+        // Styles
         private GUIStyle titleMainStyle;
         private GUIStyle subtitleStyle;
         private GUIStyle primaryBtnStyle;
@@ -160,8 +161,8 @@ namespace NebulaRelay.UI
                 fontSize = UIScale.FontButton, // 20
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.04f, 0.08f, 0.16f, 0.92f), new Color(0f, 0.55f, 0.85f, 0.6f), 2) },
-                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.4f, 0.65f, 0.95f), cyanNeon, 2) }
+                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.04f, 0.08f, 0.16f, 0.92f), cyanNeon, 2) },
+                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.4f, 0.7f, 0.95f), Color.white, 2) }
             };
 
             cardSelectStyle = new GUIStyle(GUI.skin.button)
@@ -169,16 +170,16 @@ namespace NebulaRelay.UI
                 fontSize = UIScale.FontCardHeader, // 18
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0.06f, 0.16f, 0.32f, 0.95f), cyanNeon, 2) }
+                normal = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.35f, 0.6f, 0.95f), cyanNeon, 2) }
             };
 
             cardUnselectStyle = new GUIStyle(GUI.skin.button)
             {
                 fontSize = UIScale.FontBodyDetail, // 16
-                fontStyle = FontStyle.Bold,
+                fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = new Color(0.75f, 0.85f, 0.95f), background = MakeBorderedTex(32, 32, new Color(0.03f, 0.06f, 0.12f, 0.9f), new Color(0.1f, 0.25f, 0.45f, 0.5f), 1) },
-                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0.05f, 0.12f, 0.24f, 0.92f), cyanNeon, 1) }
+                normal = { textColor = new Color(0.7f, 0.82f, 0.95f), background = MakeBorderedTex(32, 32, new Color(0.04f, 0.07f, 0.14f, 0.85f), new Color(0.1f, 0.3f, 0.5f, 0.5f), 1) },
+                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0.08f, 0.16f, 0.3f, 0.95f), cyanNeon, 1) }
             };
 
             stylesInit = true;
@@ -214,68 +215,60 @@ namespace NebulaRelay.UI
         }
 
         // ==========================================
-        // 1. OPENING SCREEN (TITLE / START)
+        // 1. TITLE SCREEN
         // ==========================================
         private void DrawTitleScreen()
         {
-            // Panel placed on the left with safe margin, leaving planet focal point on right visible on all aspects
-            float w = 460f;
-            float h = 530f;
-            float x = Mathf.Max(28f, 40f);
-            float y = (viewHeight - h) / 2f;
-            Rect menuRect = new Rect(x, y, w, h);
+            float totalW = 560f;
+            float totalH = 490f;
+            float posX = (viewWidth - totalW) / 2f;
+            float posY = (viewHeight - totalH) / 2f;
 
-            GUI.Box(menuRect, GUIContent.none, panelBoxStyle);
-            GUILayout.BeginArea(new Rect(menuRect.x + 32, menuRect.y + 28, menuRect.width - 64, menuRect.height - 56));
+            Rect mainRect = new Rect(posX, posY, totalW, totalH);
+            GUI.Box(mainRect, GUIContent.none, panelBoxStyle);
 
-            // Logo & Title
+            GUILayout.BeginArea(new Rect(posX + 36, posY + 32, totalW - 72, totalH - 64));
+
             GUILayout.Label("NEBULA RELAY", titleMainStyle);
-            GUILayout.Label("THE LAST SIGNAL", subtitleStyle);
+            GUILayout.Space(8);
+            GUILayout.Label("PRECISION COURIER  //  ORBITAL RECONSTRUCTION", subtitleStyle);
+            GUILayout.Space(28);
 
-            GUILayout.Space(26);
-
-            // Primary buttons: at least 48px tall
-            if (GUILayout.Button("NEW TRANSMISSION  ›", primaryBtnStyle, GUILayout.Height(52)))
+            if (GUILayout.Button("INITIATE MISSION  ›", primaryBtnStyle, GUILayout.Height(54)))
             {
-                selectedMissionIndex = 1;
+                AudioManager.Instance?.PlayButtonClick();
                 currentState = MenuState.MissionSelect;
             }
 
-            GUILayout.Space(12);
+            GUILayout.Space(14);
 
-            if (GUILayout.Button("CONTINUE MISSION", secondaryBtnStyle, GUILayout.Height(48)))
+            if (GUILayout.Button("SYSTEM SETTINGS", secondaryBtnStyle, GUILayout.Height(50)))
             {
-                currentState = MenuState.MissionSelect;
-            }
-
-            GUILayout.Space(12);
-
-            if (GUILayout.Button("SETTINGS", secondaryBtnStyle, GUILayout.Height(48)))
-            {
+                AudioManager.Instance?.PlayButtonClick();
                 currentState = MenuState.Settings;
             }
 
-            GUILayout.Space(12);
+            GUILayout.Space(14);
 
-            if (GUILayout.Button("QUIT", secondaryBtnStyle, GUILayout.Height(48)))
+            if (GUILayout.Button("DISCONNECT TERMINAL", secondaryBtnStyle, GUILayout.Height(50)))
             {
+                AudioManager.Instance?.PlayButtonClick();
                 Application.Quit();
             }
 
-            GUILayout.FlexibleSpace();
-
-            GUILayout.Label("FIVE RELAYS. ONE SIGNAL. NO SECOND CHANCES.", taglineStyle);
+            GUILayout.Space(24);
+            GUILayout.Label("DEEP SPACE LOGISTICS NETWORK  •  SYSTEM ONLINE", taglineStyle);
 
             GUILayout.EndArea();
         }
 
         // ==========================================
-        // 2. MISSION SELECTION SCREEN
+        // 2. MISSION SELECT SCREEN
         // ==========================================
         private void DrawMissionSelectScreen()
         {
-            float totalW = Mathf.Min(1120f, viewWidth - 48f);
-            float totalH = Mathf.Min(620f, viewHeight - 48f);
+            float totalW = Mathf.Min(1140f, viewWidth - 60f);
+            float totalH = 590f;
             float posX = (viewWidth - totalW) / 2f;
             float posY = (viewHeight - totalH) / 2f;
 
@@ -302,20 +295,21 @@ namespace NebulaRelay.UI
             float colW = (totalW - 80f) * 0.52f;
             GUILayout.BeginVertical(GUILayout.Width(colW));
 
-            DrawMissionCard(1, "01  FIRST SIGNAL", "Calm orbital corridor. 4 checkpoints.");
+            DrawMissionCard(1, "01  FIRST SIGNAL", "Calm orbital corridor. 4 compulsory relays. 2 capsules.");
             GUILayout.Space(8);
-            DrawMissionCard(2, "02  THE DEBRIS FIELD", "Asteroid hazards. Tight routes. 5 checkpoints.");
+            DrawMissionCard(2, "02  THE DEBRIS FIELD", "Asteroid hazards. Tight routes. 5 compulsory relays.");
             GUILayout.Space(8);
-            DrawMissionCard(3, "03  THE ION STORM", "Turbulent moving hazards. 5 checkpoints.");
+            DrawMissionCard(3, "03  THE ION STORM", "Turbulent moving hazards. 5 compulsory relays.");
             GUILayout.Space(8);
-            DrawMissionCard(4, "04  THE GRAVITY WELL", "Gravitational vortex corridors. 5 checkpoints.");
+            DrawMissionCard(4, "04  THE GRAVITY WELL", "Gravitational vortex corridors. 5 compulsory relays.");
             GUILayout.Space(8);
-            DrawMissionCard(5, "05  THE OMEGA TRANSMISSION", "Grand galactic nexus. 6 checkpoints. Final relay.");
+            DrawMissionCard(5, "05  THE OMEGA TRANSMISSION", "Grand galactic nexus. 6 compulsory relays. Final goal.");
 
             GUILayout.FlexibleSpace();
 
             if (GUILayout.Button("‹  BACK TO MENU", secondaryBtnStyle, GUILayout.Width(200), GUILayout.Height(48)))
             {
+                AudioManager.Instance?.PlayButtonClick();
                 currentState = MenuState.Title;
             }
 
@@ -335,28 +329,28 @@ namespace NebulaRelay.UI
             string targets;
             if (selectedMissionIndex == 1)
             {
-                desc = "Sector 1 presents a calm orbital flight corridor. Fly through 4 rings in sequential order, aim the energy capsule at the receiver dish, and dock at the relay station at <= 1.5 m/s.";
-                targets = "RINGS: 4  |  HAZARDS: None  |  SAFE SPEED: <= 1.5 m/s";
+                desc = "Sector 1 presents a calm orbital flight corridor. Synchronize all 4 compulsory relays, launch an energy capsule into the receiver dish (max 2 capsules), and dock at the station at <= 1.5 m/s within 2 minutes.";
+                targets = "RELAYS: 4 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
             }
             else if (selectedMissionIndex == 2)
             {
-                desc = "Sector 2 traverses an active asteroid debris field. Avoid dense collisions that drain battery shields, navigate 5 checkpoint gates, and power the second relay station.";
-                targets = "RINGS: 5  |  HAZARDS: 3 Asteroid Belts  |  SAFE SPEED: <= 1.5 m/s";
+                desc = "Sector 2 traverses an active asteroid debris field. Avoid dense collisions that drain battery shields, synchronize all 5 compulsory relays, and power the second relay station.";
+                targets = "RELAYS: 5 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
             }
             else if (selectedMissionIndex == 3)
             {
-                desc = "High-energy ion turbulence creates moving asteroid slaloms. Thread through 5 orbital gates under dynamic cross-drift to activate the third relay.";
-                targets = "RINGS: 5  |  HAZARDS: Moving Asteroids  |  SAFE SPEED: <= 1.5 m/s";
+                desc = "High-energy ion turbulence creates moving asteroid slaloms. Thread through all 5 compulsory relays under dynamic cross-drift to activate the third relay.";
+                targets = "RELAYS: 5 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
             }
             else if (selectedMissionIndex == 4)
             {
-                desc = "Golden gravitational anomalies pull drifting space debris into tight corridors. Precision thrust is required across 5 checkpoints to prevent kinetic damage.";
-                targets = "RINGS: 5  |  HAZARDS: Orbiting Hazards  |  SAFE SPEED: <= 1.5 m/s";
+                desc = "Golden gravitational anomalies pull drifting space debris into tight corridors. Precision thrust is required across 5 compulsory relays before unlocking the exit.";
+                targets = "RELAYS: 5 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
             }
             else
             {
-                desc = "The master galactic nexus hub. Navigate 6 checkpoint rings across an epic asteroid gauntlet and deliver the final master signal to achieve total galactic recovery.";
-                targets = "RINGS: 6  |  HAZARDS: Gauntlet Belt  |  SAFE SPEED: <= 1.5 m/s";
+                desc = "The master galactic nexus hub. Synchronize 6 compulsory relays across an epic asteroid gauntlet and deliver the final master signal to achieve total galactic recovery.";
+                targets = "RELAYS: 6 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
             }
 
             GUILayout.Label(desc, bodyStyle);
@@ -365,9 +359,9 @@ namespace NebulaRelay.UI
 
             GUILayout.FlexibleSpace();
 
-            // Large Start Mission Button (>= 48px tall)
             if (GUILayout.Button("START MISSION  ›", primaryBtnStyle, GUILayout.Height(52)))
             {
+                AudioManager.Instance?.PlayButtonClick();
                 SceneManager.LoadScene($"Level_0{selectedMissionIndex}");
             }
 
@@ -386,6 +380,7 @@ namespace NebulaRelay.UI
             if (GUILayout.Button($"   {title}\n   {subtitle}", cardStyle, GUILayout.Height(56)))
             {
                 selectedMissionIndex = index;
+                AudioManager.Instance?.PlayButtonClick();
             }
         }
 
@@ -394,32 +389,70 @@ namespace NebulaRelay.UI
         // ==========================================
         private void DrawSettingsScreen()
         {
-            float w = 540f;
-            float h = 480f;
+            float w = 620f;
+            float h = 570f;
             float x = (viewWidth - w) / 2f;
             float y = (viewHeight - h) / 2f;
             Rect r = new Rect(x, y, w, h);
 
             GUI.Box(r, GUIContent.none, panelBoxStyle);
-            GUILayout.BeginArea(new Rect(r.x + 36, r.y + 28, r.width - 72, r.height - 56));
+            GUILayout.BeginArea(new Rect(r.x + 36, r.y + 24, r.width - 72, r.height - 48));
 
             GUIStyle setHead = new GUIStyle(titleMainStyle) { fontSize = 28 };
             GUILayout.Label("SETTINGS & TELEMETRY", setHead);
-            GUILayout.Space(20);
+            GUILayout.Space(14);
 
-            GUILayout.Label($"MASTER AUDIO VOLUME: {(int)(audioVolume * 100)}%", headerSubStyle);
-            audioVolume = GUILayout.HorizontalSlider(audioVolume, 0f, 1f);
-            AudioListener.volume = audioVolume;
+            // Audio sliders
+            GUILayout.Label($"MASTER AUDIO VOLUME: {(int)(SettingsManager.MasterVolume * 100)}%", headerSubStyle);
+            float newMaster = GUILayout.HorizontalSlider(SettingsManager.MasterVolume, 0f, 1f);
+            if (Mathf.Abs(newMaster - SettingsManager.MasterVolume) > 0.01f) SettingsManager.SetMasterVolume(newMaster);
 
-            GUILayout.Space(20);
+            GUILayout.Space(6);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"SFX VOLUME: {(int)(SettingsManager.SFXVolume * 100)}%", bodyStyle, GUILayout.Width(180));
+            float newSfx = GUILayout.HorizontalSlider(SettingsManager.SFXVolume, 0f, 1f);
+            if (Mathf.Abs(newSfx - SettingsManager.SFXVolume) > 0.01f) SettingsManager.SetSFXVolume(newSfx);
+            GUILayout.EndHorizontal();
 
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"MUSIC VOLUME: {(int)(SettingsManager.MusicVolume * 100)}%", bodyStyle, GUILayout.Width(180));
+            float newMusic = GUILayout.HorizontalSlider(SettingsManager.MusicVolume, 0f, 1f);
+            if (Mathf.Abs(newMusic - SettingsManager.MusicVolume) > 0.01f) SettingsManager.SetMusicVolume(newMusic);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(8);
+            GUILayout.BeginHorizontal();
+            bool mute = GUILayout.Toggle(SettingsManager.IsMuted, " MUTE ALL AUDIO", GUI.skin.toggle);
+            if (mute != SettingsManager.IsMuted) SettingsManager.SetMuted(mute);
+
+            bool warn = GUILayout.Toggle(SettingsManager.CountdownAudioEnabled, " COUNTDOWN AUDIO", GUI.skin.toggle);
+            if (warn != SettingsManager.CountdownAudioEnabled) SettingsManager.SetCountdownAudio(warn);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+            GUILayout.BeginHorizontal();
+            bool shake = GUILayout.Toggle(SettingsManager.ScreenShakeEnabled, " SCREEN SHAKE", GUI.skin.toggle);
+            if (shake != SettingsManager.ScreenShakeEnabled) SettingsManager.SetScreenShake(shake);
+
+            bool vfx = GUILayout.Toggle(SettingsManager.VisualEffectsEnabled, " VISUAL EFFECTS", GUI.skin.toggle);
+            if (vfx != SettingsManager.VisualEffectsEnabled) SettingsManager.SetVisualEffects(vfx);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+            if (GUILayout.Button(Screen.fullScreen ? "SWITCH TO WINDOWED" : "SWITCH TO FULLSCREEN", secondaryBtnStyle, GUILayout.Height(38)))
+            {
+                SettingsManager.ToggleFullscreen();
+            }
+
+            GUILayout.Space(12);
             GUILayout.Label("FLIGHT CONTROLS:", headerSubStyle);
-            GUILayout.Label("• [W / A / S / D] or [Arrows] — Drone Inertial Thrusters\n• [Mouse Cursor] — Real-Time Trajectory Aim\n• [Space] or [LMB] — Energy Capsule Launch\n• [R] — Quick Sector Restart\n• [Escape] — Mission Pause\n• [F11] or [Alt+Enter] — Fullscreen / Windowed", bodyStyle);
+            GUILayout.Label("• [W / A / S / D] or [Arrows] — Drone Inertial Thrusters\n• [Mouse Cursor] — Trajectory Aiming\n• [Space] or [LMB] — Energy Capsule Launch (Max 2)\n• [R] — Quick Sector Restart   |   [Esc] — Pause Menu", bodyStyle);
 
             GUILayout.FlexibleSpace();
 
-            if (GUILayout.Button("‹  BACK", secondaryBtnStyle, GUILayout.Height(48)))
+            if (GUILayout.Button("‹  BACK", secondaryBtnStyle, GUILayout.Height(46)))
             {
+                AudioManager.Instance?.PlayButtonClick();
                 currentState = MenuState.Title;
             }
 

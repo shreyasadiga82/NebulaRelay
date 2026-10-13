@@ -1,48 +1,53 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using NebulaRelay.Core;
+using NebulaRelay.Effects;
 
 namespace NebulaRelay.World
 {
     /// <summary>
-    /// RingManager manages the sequential orbital ring checkpoint progression.
-    /// Tracks which ring must be crossed next and prevents out-of-order advances.
+    /// RingManager manages the sequential orbital relay checkpoints in each mission.
+    /// Tracks compulsory relay count, awards score on activation, and signals exit unlock when all relays are synchronized.
     /// </summary>
     [SelectionBase]
     public class RingManager : MonoBehaviour
     {
-        [Header("Ring Progression")]
+        [Header("Relay Progression")]
         [Tooltip("Ordered list of RingGates in the level. If left empty, auto-populates from scene by RingOrder.")]
         [SerializeField] private List<RingGate> rings = new List<RingGate>();
 
-        [Header("Feedback Settings")]
-        [Tooltip("Display built-in on-screen status text and wrong order alerts.")]
-        [SerializeField] private bool showOnScreenHUD = true;
-
-        [Tooltip("Duration in seconds that wrong-order alerts remain visible.")]
-        [SerializeField] private float alertDuration = 2.5f;
-
         // State
         private int currentExpectedOrder = 1;
-        private string currentAlertMessage = "";
-        private float alertExpireTime = 0f;
+        private int activatedRelaysCount = 0;
+        private bool allRelaysCompleted = false;
 
-        // Public Interface & Events
+        // Public Interface & Properties
         public int CurrentExpectedOrder => currentExpectedOrder;
-        public int TotalRings => rings.Count;
-        public bool AllRingsCompleted { get; private set; } = false;
+        public int TotalRings => rings != null ? rings.Count : 0;
+        public int TotalRelays => TotalRings;
+        public int ActivatedRelaysCount => activatedRelaysCount;
+        public int RemainingRelays => Mathf.Max(0, TotalRelays - activatedRelaysCount);
+        public bool AllRingsCompleted => allRelaysCompleted;
+        public bool AllRelaysSynchronized => allRelaysCompleted;
 
+        // Events
         public event Action<RingGate> OnRingPassed;
         public event Action<RingGate, int> OnWrongRingAttempted;
         public event Action OnAllRingsPassed;
+        public event Action OnAllRelaysSynchronized;
 
         private void Awake()
         {
             InitializeRings();
         }
 
-        private void InitializeRings()
+        public void InitializeRings()
         {
+            currentExpectedOrder = 1;
+            activatedRelaysCount = 0;
+            allRelaysCompleted = false;
+
             if (rings != null)
             {
                 rings.RemoveAll(r => r == null);
@@ -50,13 +55,12 @@ namespace NebulaRelay.World
 
             if (rings == null || rings.Count == 0)
             {
-                // Auto-discover all RingGate objects in scene and sort by ringOrder
                 RingGate[] foundRings = FindObjectsByType<RingGate>(FindObjectsSortMode.None);
                 rings = new List<RingGate>(foundRings);
                 rings.Sort((a, b) => a.RingOrder.CompareTo(b.RingOrder));
             }
 
-            // Set initial ring states: Ring 1 is Active, others are Inactive
+            // Set initial relay states: Relay 1 is Active, others are Inactive
             for (int i = 0; i < rings.Count; i++)
             {
                 if (rings[i] != null)
@@ -67,84 +71,57 @@ namespace NebulaRelay.World
         }
 
         /// <summary>
-        /// Called when the player drone passes through any RingGate's trigger collider.
+        /// Called when the player drone or capsule passes through any RingGate's trigger area.
         /// </summary>
         public void OnPlayerCrossedRing(RingGate ring)
         {
-            if (AllRingsCompleted || ring == null) return;
+            if (allRelaysCompleted || ring == null) return;
 
             // 1. Correct sequence check
             if (ring.RingOrder == currentExpectedOrder)
             {
-                // Success: mark completed
                 ring.SetState(RingState.Completed);
-                OnRingPassed?.Invoke(ring);
+                ring.PlayActivationGlow();
+                activatedRelaysCount++;
 
+                // Award points & floating text
+                ScoreManager.Instance?.AwardRelayPoints(ring.GetInstanceID(), ring.transform.position, ScoreManager.PointsPerRelay);
+                AudioManager.Instance?.PlayRelayActivated();
+
+                OnRingPassed?.Invoke(ring);
                 currentExpectedOrder++;
 
-                // Activate the next ring in sequence
+                // Activate the next ring in sequence if any
                 int nextIndex = rings.FindIndex(r => r != null && r.RingOrder == currentExpectedOrder);
                 if (nextIndex >= 0 && nextIndex < rings.Count)
                 {
                     rings[nextIndex].SetState(RingState.Active);
-                    SetAlert($"Ring {ring.RingOrder}/{TotalRings} Passed! Next: Ring {currentExpectedOrder}", 2.0f, false);
+                    LevelManager.Instance?.SetHUDMessage($"RELAYS: {activatedRelaysCount}/{TotalRelays} SYNCHRONIZED", 2.0f, false);
                 }
                 else
                 {
-                    // All rings in the sequence completed!
-                    AllRingsCompleted = true;
+                    // Every compulsory relay in the mission is synchronized!
+                    allRelaysCompleted = true;
                     OnAllRingsPassed?.Invoke();
-                    SetAlert("ALL ORBITAL RINGS COMPLETED!", 4.0f, false);
+                    OnAllRelaysSynchronized?.Invoke();
+
+                    LevelManager.Instance?.SetHUDMessage("ALL RELAYS SYNCHRONIZED — EXIT UNLOCKED!", 5.0f, false);
+                    AudioManager.Instance?.PlayExitUnlocked();
                 }
             }
-            // 2. Already completed ring
+            // 2. Already completed relay (ignore gracefully, no duplicate scoring)
             else if (ring.RingOrder < currentExpectedOrder)
             {
-                // Drone re-crossed an already completed ring; ignore without penalty
+                // Already passed
             }
-            // 3. Out-of-order ring violation
+            // 3. Out-of-order relay violation
             else
             {
                 ring.FlashWrongOrder();
+                AudioManager.Instance?.PlayMissionLocked();
                 OnWrongRingAttempted?.Invoke(ring, currentExpectedOrder);
-                SetAlert($"WRONG RING! Cross Ring {currentExpectedOrder} first!", alertDuration, true);
+                LevelManager.Instance?.SetHUDMessage($"WRONG SEQUENCE! Synchronize Relay {currentExpectedOrder} first!", 2.5f, true);
             }
-        }
-
-        private void SetAlert(string message, float duration, bool isWarning)
-        {
-            currentAlertMessage = message;
-            alertExpireTime = Time.time + duration;
-        }
-
-        private void OnGUI()
-        {
-            if (!showOnScreenHUD) return;
-
-            // Top-left HUD box for Ring progression
-            GUIStyle boxStyle = new GUIStyle(GUI.skin.box);
-            boxStyle.fontSize = 14;
-            boxStyle.normal.textColor = Color.white;
-            boxStyle.alignment = TextAnchor.MiddleLeft;
-
-            int clearedCount = Mathf.Min(currentExpectedOrder - 1, TotalRings);
-            string status = AllRingsCompleted 
-                ? "<color=#00FF66><b>ORBITAL RINGS: COMPLETE (ALL PASS)</b></color>" 
-                : $"<b>ORBITAL RINGS:</b> {clearedCount}/{TotalRings} (Target: Ring {currentExpectedOrder})";
-
-            GUILayout.BeginArea(new Rect(20, 20, 340, 70), GUI.skin.box);
-            GUILayout.Label(status, boxStyle);
-
-            if (Time.time < alertExpireTime && !string.IsNullOrEmpty(currentAlertMessage))
-            {
-                bool isWarning = currentAlertMessage.Contains("WRONG");
-                GUIStyle alertStyle = new GUIStyle(GUI.skin.label);
-                alertStyle.fontSize = 13;
-                alertStyle.fontStyle = FontStyle.Bold;
-                alertStyle.normal.textColor = isWarning ? new Color(1f, 0.3f, 0.3f) : new Color(0.2f, 1f, 0.5f);
-                GUILayout.Label(currentAlertMessage, alertStyle);
-            }
-            GUILayout.EndArea();
         }
     }
 }

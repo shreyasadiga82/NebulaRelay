@@ -5,6 +5,7 @@ using NebulaRelay.UI;
 using NebulaRelay.Core;
 using NebulaRelay.World;
 using NebulaRelay.Effects;
+using System.Reflection;
 
 namespace NebulaRelay.Editor
 {
@@ -12,16 +13,10 @@ namespace NebulaRelay.Editor
     /// NebulaRelayVerificationTests runs automated verification checks on all core math,
     /// physics assumptions, ring ordering, relay activation, battery rules, scene camera sizes,
     /// prefab sizing, zero-override scene checks, UI scaling integrity, and the 12 Prompt Acceptance Tests.
-    /// Can be executed from the top menu: Drift Core > Run All 32 Verification Tests.
+    /// Can be executed from the top menu: Drift Core > Run All 36 Verification Tests.
     /// </summary>
-    [InitializeOnLoad]
-    public static class NebulaRelayVerificationTests
+        public static class NebulaRelayVerificationTests
     {
-        static NebulaRelayVerificationTests()
-        {
-            EditorApplication.delayCall += RunAllTests;
-        }
-
         [MenuItem("Drift Core/Run All 36 Verification Tests", priority = 3)]
         public static void RunAllTests()
         {
@@ -37,7 +32,9 @@ namespace NebulaRelay.Editor
             Debug.Log("<b><color=#00E5FF>[DRIFT CORE] STARTING AUTOMATED TEST SUITE (36 TESTS)</color></b>");
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
 
+
             // Test 1: Projectile Math - Zero Gravity Linear Prediction
+            try
             {
                 Vector2 p0 = Vector2.zero;
                 Vector2 v0 = new Vector2(12f, 0f);
@@ -49,8 +46,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("1. ProjectileMath Zero-Gravity Linear Motion", $"Expected (12,0), got {posAt1s}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("1. Projectile Math - Zero Gravity Linear Prediction", $"Exception: {ex.Message}");
+            }
 
             // Test 2: Projectile Math - Acceleration Integration
+            try
             {
                 Vector2 p0 = Vector2.zero;
                 Vector2 v0 = new Vector2(0f, 10f);
@@ -64,8 +66,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("2. ProjectileMath Acceleration Integration", $"Expected {expectedY}, got {posAt1s.y}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("2. Projectile Math - Acceleration Integration", $"Exception: {ex.Message}");
+            }
 
             // Test 3: Trajectory Preview vs Capsule Alignment
+            try
             {
                 Vector2 p0 = new Vector2(2f, 3f);
                 Vector2 dir = new Vector2(1f, 1f).normalized;
@@ -91,8 +98,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("3. Trajectory Alignment", "Mismatch between preview formula and capsule motion");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("3. Trajectory Preview vs Capsule Alignment", $"Exception: {ex.Message}");
+            }
 
             // Test 4: Drone Speed Clamping at 8.0 units/s
+            try
             {
                 Vector2 velocity = new Vector2(15f, 0f);
                 float maxSpeed = 8.0f;
@@ -104,8 +116,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("4. Drone Speed Clamping", $"Expected 8.0, got {clamped.magnitude}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("4. Drone Speed Clamping at 8.0 units/s", $"Exception: {ex.Message}");
+            }
 
             // Test 5: Drag Deceleration Model
+            try
             {
                 float initialSpeed = 8.0f;
                 float drag = 0.2f;
@@ -118,8 +135,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("5. Drag Model", $"Invalid deceleration: {speedAfterDt}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("5. Drag Deceleration Model", $"Exception: {ex.Message}");
+            }
 
             // Test 6: Ring Sequence Order Validation Logic
+            try
             {
                 int currentExpected = 1;
                 int attemptedWrong = 2;
@@ -131,8 +153,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("6. Ring Order Rejection", "Allowed out of order pass");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("6. Ring Sequence Order Validation Logic", $"Exception: {ex.Message}");
+            }
 
             // Test 7: Ring Progression Advance
+            try
             {
                 int currentExpected = 1;
                 int attemptedCorrect = 1;
@@ -147,8 +174,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("7. Ring Advance", $"Expected 2, got {currentExpected}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("7. Ring Progression Advance", $"Exception: {ex.Message}");
+            }
 
             // Test 8: Energy Receiver Single-Delivery Latch
+            try
             {
                 bool isDelivered = false;
                 int deliveryCount = 0;
@@ -163,8 +195,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("8. Single-Delivery Latch", $"Delivery count was {deliveryCount}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("8. Energy Receiver Single-Delivery Latch", $"Exception: {ex.Message}");
+            }
 
             // Test 9: Relay Station Speed Check Threshold
+            try
             {
                 float maxSafeSpeed = 1.5f;
                 float fastSpeed = 2.4f;
@@ -180,8 +217,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("9. Safe Speed Gate", "Incorrect speed threshold evaluation");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("9. Relay Station Speed Check Threshold", $"Exception: {ex.Message}");
+            }
 
             // Test 10: Relay State Machine Prerequisites
+            try
             {
                 bool energyDelivered = false;
                 bool canActivate = energyDelivered;
@@ -196,8 +238,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("10. Relay Prerequisite Gate", "Relay allowed activation prematurely");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("10. Relay State Machine Prerequisites", $"Exception: {ex.Message}");
+            }
 
             // Test 11: Battery Discharge Limits (Never Negative)
+            try
             {
                 float battery = 10f;
                 float drain = 25f;
@@ -210,8 +257,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("11. Battery Floor Clamp", $"Battery value was {battery}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("11. Battery Discharge Limits (Never Negative)", $"Exception: {ex.Message}");
+            }
 
             // Test 12: Low Battery Warning Threshold
+            try
             {
                 float battery = 18f;
                 float threshold = 20f;
@@ -223,8 +275,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("12. Low Battery Warning", "Failed to detect low battery state");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("12. Low Battery Warning Threshold", $"Exception: {ex.Message}");
+            }
 
             // Test 13: 5-Relay Network Restoration Victory Condition
+            try
             {
                 int maxRelays = 5;
                 int restored = 5;
@@ -236,8 +293,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("13. Victory Condition", "Failed to evaluate grand victory state");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("13. 5-Relay Network Restoration Victory Condition", $"Exception: {ex.Message}");
+            }
 
             // Test 14: Build Settings Scene Registration Check
+            try
             {
                 int sceneCount = EditorBuildSettings.scenes.Length;
                 if (sceneCount >= 6)
@@ -247,8 +309,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("14. Build Settings Scenes", $"Expected 6 scenes, found {sceneCount}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("14. Build Settings Scene Registration Check", $"Exception: {ex.Message}");
+            }
 
             // Test 15: Required Asset Integrity Check
+            try
             {
                 string[] requiredAssets = new string[]
                 {
@@ -283,8 +350,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("15. Asset Integrity", "One or more essential assets were missing from disk");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("15. Required Asset Integrity Check", $"Exception: {ex.Message}");
+            }
 
             // Test 16: Physics2D Gravity is Zero
+            try
             {
                 bool isZeroGravity = Physics2D.gravity == Vector2.zero;
                 if (isZeroGravity)
@@ -294,8 +366,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("16. Zero-Gravity Physics2D", $"Expected (0, 0), got {Physics2D.gravity}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("16. Physics2D Gravity is Zero", $"Exception: {ex.Message}");
+            }
 
             // Test 17: Level Cameras Orthographic Size 7.5
+            try
             {
                 string[] levelScenes = new string[]
                 {
@@ -334,8 +411,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("17. Level Camera Orthographic Size", "One or more level cameras do not have orthographicSize 7.5");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("17. Level Cameras Orthographic Size 7.5", $"Exception: {ex.Message}");
+            }
 
             // Test 18: No m_LocalScale Overrides on Prefab Instances in Level Scenes
+            try
             {
                 string[] levelScenes = new string[]
                 {
@@ -367,8 +449,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("18. Zero Prefab Scale Overrides in Scenes", "One or more level scenes contain m_LocalScale overrides on prefab instances");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("18. No m_LocalScale Overrides on Prefab Instances in Level Scenes", $"Exception: {ex.Message}");
+            }
 
             // Test 19: Prefab Visible World Sizing Within Target Ranges
+            try
             {
                 GameObject droneP = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_NebulaRelay/Prefabs/PlayerDrone.prefab");
                 GameObject ringP = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_NebulaRelay/Prefabs/RingGate.prefab");
@@ -406,8 +493,13 @@ namespace NebulaRelay.Editor
                     LogFail("19. Prefab World Target Sizing", "Unable to load prefabs for size measurement");
                 }
             }
+            catch (System.Exception ex)
+            {
+                LogFail("19. Prefab Visible World Sizing Within Target Ranges", $"Exception: {ex.Message}");
+            }
 
             // Test 20: UI Scaling & Minimum Font Size Check
+            try
             {
                 float scale1366 = UIScale.GetScale(1366f, 768f);
                 float scale1536 = UIScale.GetScale(1536f, 864f);
@@ -444,12 +536,13 @@ namespace NebulaRelay.Editor
                     LogFail("20. UI Scaling & Font Size Integrity", "Scale mismatch or font size < 14");
                 }
             }
-
-            // ==========================================
-            // PROMPT TESTS (TESTS 21 TO 32)
-            // ==========================================
+            catch (System.Exception ex)
+            {
+                LogFail("20. UI Scaling & Minimum Font Size Check", $"Exception: {ex.Message}");
+            }
 
             // Test 21: Exit Lock When Relays Incomplete (Prompt Test 1)
+            try
             {
                 int totalRelays = 5;
                 int activatedRelays = 3;
@@ -464,8 +557,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("21. Exit Lock When Relays Incomplete", "Failed to lock exit or calculate remaining relays");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("21. Exit Lock When Relays Incomplete (Prompt Test 1)", $"Exception: {ex.Message}");
+            }
 
             // Test 22: Exit Unlock Upon Full Relay Synchronization (Prompt Test 2)
+            try
             {
                 int totalRelays = 5;
                 int activatedRelays = 5;
@@ -479,31 +577,47 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("22. Exit Unlock Upon Full Synchronization", "Exit failed to unlock after all relays synchronized");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("22. Exit Unlock Upon Full Relay Synchronization (Prompt Test 2)", $"Exception: {ex.Message}");
+            }
 
             // Test 23: Duplicate Relay Scoring Rejection (Prompt Test 3)
+            try
             {
                 GameObject tempObj = new GameObject("ScoreTestObj");
-                ScoreManager sm = tempObj.AddComponent<ScoreManager>();
-                sm.ResetScore();
-
-                int relayId = 42;
-                Vector3 pos = Vector3.zero;
-
-                bool hit1 = sm.AwardRelayPoints(relayId, pos, 100);
-                bool hit2 = sm.AwardRelayPoints(relayId, pos, 100); // Duplicate!
-
-                int finalScore = sm.CurrentScore;
-                Object.DestroyImmediate(tempObj);
-
-                if (hit1 && !hit2 && finalScore == 100)
+                try
                 {
-                    LogPass("23. Duplicate Relay Scoring Rejection", "Initial activation awarded 100 pts; duplicate pass rejected cleanly (Score: 100)");
-                    passed++;
+                    ScoreManager sm = tempObj.AddComponent<ScoreManager>();
+                    sm.ResetScore();
+
+                    int relayId = 42;
+                    Vector3 pos = Vector3.zero;
+
+                    bool hit1 = sm.AwardRelayPoints(relayId, pos, 100);
+                    bool hit2 = sm.AwardRelayPoints(relayId, pos, 100); // Duplicate!
+
+                    int finalScore = sm.CurrentScore;
+
+                    if (hit1 && !hit2 && finalScore == 100)
+                    {
+                        LogPass("23. Duplicate Relay Scoring Rejection", "Initial activation awarded 100 pts; duplicate pass rejected cleanly (Score: 100)");
+                        passed++;
+                    }
+                    else LogFail("23. Duplicate Relay Scoring Rejection", $"Duplicate pass was not rejected (hit1={hit1}, hit2={hit2}, score={finalScore})");
                 }
-                else LogFail("23. Duplicate Relay Scoring Rejection", $"Duplicate pass was not rejected (hit1={hit1}, hit2={hit2}, score={finalScore})");
+                finally
+                {
+                    Object.DestroyImmediate(tempObj);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LogFail("23. Duplicate Relay Scoring Rejection", $"Exception: {ex.Message}");
             }
 
             // Test 24: Maximum Two Capsules Limit (Prompt Test 4)
+            try
             {
                 int remaining = CapsuleLauncher.MaxCapsulesPerMission; // 2
                 bool launch1 = remaining > 0;
@@ -521,8 +635,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("24. Maximum Two Capsules Limit", $"Allowed 3rd launch or incorrect count ({remaining})");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("24. Maximum Two Capsules Limit (Prompt Test 4)", $"Exception: {ex.Message}");
+            }
 
             // Test 25: Mission Reset Restores All State (Prompt Test 5)
+            try
             {
                 int remainingCaps = 0;
                 int score = 450;
@@ -542,8 +661,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("25. Mission Reset Restores All State", "Reset did not restore default initial mission state");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("25. Mission Reset Restores All State (Prompt Test 5)", $"Exception: {ex.Message}");
+            }
 
             // Test 26: Timer Zero Failure Condition (Prompt Test 6)
+            try
             {
                 float timeRemaining = 0.0f;
                 LevelState state = LevelState.InFlight;
@@ -562,8 +686,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("26. Timer Expiration Failure Condition", "Failed to trigger TIME EXPIRED on countdown zero");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("26. Timer Zero Failure Condition (Prompt Test 6)", $"Exception: {ex.Message}");
+            }
 
             // Test 27: Pause Stops Gameplay & Timer (Prompt Test 7)
+            try
             {
                 float prevTimeScale = Time.timeScale;
                 bool isPaused = true;
@@ -581,8 +710,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("27. Pause Stops Gameplay & Timer", "TimeScale did not drop to 0 on pause");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("27. Pause Stops Gameplay & Timer (Prompt Test 7)", $"Exception: {ex.Message}");
+            }
 
             // Test 28: Volume Settings Immediate Response (Prompt Test 8)
+            try
             {
                 float testSfx = 0.42f;
                 SettingsManager.SetSFXVolume(testSfx);
@@ -594,8 +728,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("28. Volume Settings Immediate Response", "Failed to update SFX volume immediately");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("28. Volume Settings Immediate Response (Prompt Test 8)", $"Exception: {ex.Message}");
+            }
 
             // Test 29: Settings Persistence via PlayerPrefs (Prompt Test 9)
+            try
             {
                 float testMaster = 0.77f;
                 SettingsManager.SetMasterVolume(testMaster);
@@ -608,56 +747,81 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("29. Settings Persistence via PlayerPrefs", "PlayerPrefs failed to persist master volume");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("29. Settings Persistence via PlayerPrefs (Prompt Test 9)", $"Exception: {ex.Message}");
+            }
 
             // Test 30: Accurate Mission Results Breakdown (Prompt Test 10)
+            try
             {
                 GameObject tempObj = new GameObject("ScoreBreakdownObj");
-                ScoreManager sm = tempObj.AddComponent<ScoreManager>();
-                sm.ResetScore();
-
-                // 4 relays activated
-                sm.AwardRelayPoints(1, Vector3.zero, 100);
-                sm.AwardRelayPoints(2, Vector3.zero, 100);
-                sm.AwardRelayPoints(3, Vector3.zero, 100);
-                sm.AwardRelayPoints(4, Vector3.zero, 100);
-
-                // Finalize with 60s remaining and 1 capsule remaining
-                sm.FinalizeMissionScore(60f, 1);
-
-                // Base: 400, Comp: 250, Time: 60*5=300, Capsule: 1*150=150 => Total: 1100
-                bool match = (sm.BaseRelayScore == 400) &&
-                             (sm.CompletionBonus == 250) &&
-                             (sm.TimeBonus == 300) &&
-                             (sm.CapsuleBonus == 150) &&
-                             (sm.TotalScore == 1100);
-
-                Object.DestroyImmediate(tempObj);
-
-                if (match)
+                try
                 {
-                    LogPass("30. Accurate Mission Results Breakdown", "Score calculation: 400 relays + 250 completion + 300 time + 150 capsule = 1100 pts");
-                    passed++;
+                    ScoreManager sm = tempObj.AddComponent<ScoreManager>();
+                    sm.ResetScore();
+
+                    // 4 relays activated
+                    sm.AwardRelayPoints(1, Vector3.zero, 100);
+                    sm.AwardRelayPoints(2, Vector3.zero, 100);
+                    sm.AwardRelayPoints(3, Vector3.zero, 100);
+                    sm.AwardRelayPoints(4, Vector3.zero, 100);
+
+                    // Finalize with 60s remaining and 1 capsule remaining
+                    sm.FinalizeMissionScore(60f, 1);
+
+                    // Base: 400, Comp: 250, Time: 60*5=300, Capsule: 1*150=150 => Total: 1100
+                    bool match = (sm.BaseRelayScore == 400) &&
+                                 (sm.CompletionBonus == 250) &&
+                                 (sm.TimeBonus == 300) &&
+                                 (sm.CapsuleBonus == 150) &&
+                                 (sm.TotalScore == 1100);
+
+                    if (match)
+                    {
+                        LogPass("30. Accurate Mission Results Breakdown", "Score calculation: 400 relays + 250 completion + 300 time + 150 capsule = 1100 pts");
+                        passed++;
+                    }
+                    else LogFail("30. Accurate Mission Results Breakdown", "Mismatch in mission score breakdown calculation");
                 }
-                else LogFail("30. Accurate Mission Results Breakdown", "Mismatch in mission score breakdown calculation");
+                finally
+                {
+                    Object.DestroyImmediate(tempObj);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LogFail("30. Accurate Mission Results Breakdown", $"Exception: {ex.Message}");
             }
 
             // Test 31: Audio Asset Procedural Generation Integrity (Prompt Test 11)
+            try
             {
                 GameObject audioObj = new GameObject("AudioTestObj");
-                AudioManager am = audioObj.AddComponent<AudioManager>();
-
-                bool audioReady = (AudioManager.Instance != null);
-                Object.DestroyImmediate(audioObj);
-
-                if (audioReady)
+                try
                 {
-                    LogPass("31. Audio Synthesis & Asset Integrity", "AudioManager initialized and procedural synthesis operational without external assets");
-                    passed++;
+                    AudioManager am = audioObj.AddComponent<AudioManager>();
+                    bool audioReady = (AudioManager.Instance != null);
+
+                    if (audioReady)
+                    {
+                        LogPass("31. Audio Synthesis & Asset Integrity", "AudioManager initialized and procedural synthesis operational without external assets");
+                        passed++;
+                    }
+                    else LogFail("31. Audio Synthesis Integrity", "AudioManager failed to initialize");
                 }
-                else LogFail("31. Audio Synthesis Integrity", "AudioManager failed to initialize");
+                finally
+                {
+                    Object.DestroyImmediate(audioObj);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LogFail("31. Audio Synthesis Integrity", $"Exception: {ex.Message}");
             }
 
             // Test 32: Scene and Prefab Wiring Integrity (Prompt Test 12)
+            try
             {
                 string[] scenes = new string[]
                 {
@@ -682,8 +846,13 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("32. Scene and Prefab Wiring Integrity", "One or more scenes were missing or invalid");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("32. Scene and Prefab Wiring Integrity (Prompt Test 12)", $"Exception: {ex.Message}");
+            }
 
             // Test 33: Difficulty Configuration Parameters (Easy, Medium, Hard)
+            try
             {
                 bool durOk = Mathf.Approximately(SettingsManager.GetMissionDuration(GameDifficulty.Easy), 150f)
                           && Mathf.Approximately(SettingsManager.GetMissionDuration(GameDifficulty.Medium), 120f)
@@ -712,82 +881,146 @@ namespace NebulaRelay.Editor
                 }
                 else LogFail("33. Difficulty Configuration Parameters", $"Mismatch: dur={durOk}, spd={speedOk}, dmg={dmgOk}, drain={drainOk}, score={scoreOk}");
             }
+            catch (System.Exception ex)
+            {
+                LogFail("33. Difficulty Configuration Parameters (Easy, Medium, Hard)", $"Exception: {ex.Message}");
+            }
 
             // Test 34: Difficulty Score Calculation & Hard Multiplier (1.5x)
+            try
             {
                 GameObject scoreObj = new GameObject("ScoreTestObj");
-                ScoreManager sm = scoreObj.AddComponent<ScoreManager>();
-
-                // Set difficulty to Hard
-                SettingsManager.SetDifficulty(GameDifficulty.Hard);
-
-                sm.AwardRelayPoints(1, Vector3.zero, 100);
-                sm.AwardRelayPoints(2, Vector3.zero, 100);
-                sm.AwardRelayPoints(3, Vector3.zero, 100);
-                sm.AwardRelayPoints(4, Vector3.zero, 100);
-
-                // Subtotal: 400 relays + 250 completion + (60 * 5 = 300) time + (1 * 150 = 150) capsule = 1100
-                // Hard 1.5x: 1100 * 1.5 = 1650 pts (difficultyBonus = 550)
-                sm.FinalizeMissionScore(60f, 1);
-
-                bool hardScoreValid = (sm.SubtotalScore == 1100) && (sm.DifficultyBonus == 550) && (sm.TotalScore == 1650);
-
-                // Reset back to Medium
-                SettingsManager.SetDifficulty(GameDifficulty.Medium);
-                Object.DestroyImmediate(scoreObj);
-
-                if (hardScoreValid)
+                try
                 {
-                    LogPass("34. Hard Difficulty 1.5x Score Multiplier", "Subtotal 1100 + Hard 50% bonus (550 pts) = 1650 Total");
-                    passed++;
+                    ScoreManager sm = scoreObj.AddComponent<ScoreManager>();
+
+                    // Set difficulty to Hard
+                    SettingsManager.SetDifficulty(GameDifficulty.Hard);
+
+                    sm.AwardRelayPoints(1, Vector3.zero, 100);
+                    sm.AwardRelayPoints(2, Vector3.zero, 100);
+                    sm.AwardRelayPoints(3, Vector3.zero, 100);
+                    sm.AwardRelayPoints(4, Vector3.zero, 100);
+
+                    // Subtotal: 400 relays + 250 completion + (60 * 5 = 300) time + (1 * 150 = 150) capsule = 1100
+                    // Hard 1.5x: 1100 * 1.5 = 1650 pts (difficultyBonus = 550)
+                    sm.FinalizeMissionScore(60f, 1);
+
+                    bool hardScoreValid = (sm.SubtotalScore == 1100) && (sm.DifficultyBonus == 550) && (sm.TotalScore == 1650);
+
+                    if (hardScoreValid)
+                    {
+                        LogPass("34. Hard Difficulty 1.5x Score Multiplier", "Subtotal 1100 + Hard 50% bonus (550 pts) = 1650 Total");
+                        passed++;
+                    }
+                    else LogFail("34. Hard Difficulty 1.5x Score Multiplier", $"Expected 1650 total, got {sm.TotalScore}");
                 }
-                else LogFail("34. Hard Difficulty 1.5x Score Multiplier", $"Expected 1650 total, got {sm.TotalScore}");
+                finally
+                {
+                    SettingsManager.SetDifficulty(GameDifficulty.Medium);
+                    Object.DestroyImmediate(scoreObj);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LogFail("34. Hard Difficulty 1.5x Score Multiplier", $"Exception: {ex.Message}");
             }
 
             // Test 35: UI Input Guard (Blocks Mouse Firing Over Telemetry & Buttons)
+            try
             {
                 GameObject hudObj = new GameObject("HUDTestObj");
-                HUDController hud = hudObj.AddComponent<HUDController>();
+                LevelManager prevLM = LevelManager.Instance;
+                var lmProp = typeof(LevelManager).GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+                var hudProp = typeof(HUDController).GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
 
-                // Simulated top bar coordinate (y = 50 in GUI space => screen Y = Screen.height - 50)
-                float topScreenY = Screen.height - (50f * UIScale.GetScale());
-                Vector2 topMouse = new Vector2(Screen.width / 2f, topScreenY);
-
-                // Simulated center playfield coordinate (y = 360 in GUI space)
-                float centerScreenY = Screen.height - (360f * UIScale.GetScale());
-                Vector2 centerMouse = new Vector2(Screen.width / 2f, centerScreenY);
-
-                bool topBlocked = HUDController.IsPointerOverUI(topMouse);
-                bool centerAllowed = !HUDController.IsPointerOverUI(centerMouse);
-
-                Object.DestroyImmediate(hudObj);
-
-                if (topBlocked && centerAllowed)
+                try
                 {
-                    LogPass("35. UI Pointer Input Guard", "Capsule launching correctly blocked over top HUD bar and permitted in playfield");
-                    passed++;
+                    if (prevLM != null)
+                    {
+                        lmProp?.GetSetMethod(true)?.Invoke(null, new object[] { null });
+                    }
+
+                    HUDController hud = hudObj.AddComponent<HUDController>();
+                    hudProp?.GetSetMethod(true)?.Invoke(null, new object[] { hud });
+
+                    float screenH = Screen.height > 0 ? (float)Screen.height : 720f;
+                    float screenW = Screen.width > 0 ? (float)Screen.width : 1280f;
+                    float scale = (Screen.height > 0 && Screen.width > 0) ? UIScale.GetScale() : UIScale.GetScale(screenW, screenH);
+
+                    // Simulated top bar coordinate (y = 50 in GUI space => screen Y = screenH - (50 * scale))
+                    float topScreenY = screenH - (50f * scale);
+                    Vector2 topMouse = new Vector2(screenW / 2f, topScreenY);
+
+                    // Simulated center playfield coordinate (y = 360 in GUI space => screen Y = screenH - (360 * scale))
+                    float centerScreenY = screenH - (360f * scale);
+                    Vector2 centerMouse = new Vector2(screenW / 2f, centerScreenY);
+
+                    bool topBlocked = HUDController.IsPointerOverUI(topMouse);
+                    bool centerAllowed = !HUDController.IsPointerOverUI(centerMouse);
+
+                    if (topBlocked && centerAllowed)
+                    {
+                        LogPass("35. UI Pointer Input Guard", "Capsule launching correctly blocked over top HUD bar and permitted in playfield");
+                        passed++;
+                    }
+                    else LogFail("35. UI Pointer Input Guard", $"Guard failed: topBlocked={topBlocked}, centerAllowed={centerAllowed}");
                 }
-                else LogFail("35. UI Pointer Input Guard", $"Guard failed: topBlocked={topBlocked}, centerAllowed={centerAllowed}");
+                finally
+                {
+                    hudProp?.GetSetMethod(true)?.Invoke(null, new object[] { null });
+                    if (prevLM != null)
+                    {
+                        lmProp?.GetSetMethod(true)?.Invoke(null, new object[] { prevLM });
+                    }
+                    Object.DestroyImmediate(hudObj);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LogFail("35. UI Pointer Input Guard", $"Exception: {ex.Message}");
             }
 
             // Test 36: EnergyReceiver Scale Preservation & Clean Reset
+            try
             {
                 GameObject rxObj = new GameObject("RxTestObj");
-                rxObj.transform.localScale = new Vector3(1.43f, 1.43f, 1.0f);
-                EnergyReceiver rx = rxObj.AddComponent<EnergyReceiver>();
-
-                rx.ResetReceiver();
-                bool scalePreserved = Mathf.Approximately(rxObj.transform.localScale.x, 1.43f);
-                bool deliveredReset = !rx.IsDelivered;
-
-                Object.DestroyImmediate(rxObj);
-
-                if (scalePreserved && deliveredReset)
+                try
                 {
-                    LogPass("36. EnergyReceiver Scale Preservation & Reset", "Receiver maintains exact 1.43f prefab scale and resets cleanly");
-                    passed++;
+                    rxObj.transform.localScale = new Vector3(1.43f, 1.43f, 1.0f);
+                    rxObj.AddComponent<CircleCollider2D>();
+                    EnergyReceiver rx = rxObj.AddComponent<EnergyReceiver>();
+
+                    if (rx != null)
+                    {
+                        typeof(EnergyReceiver).GetMethod("Awake", BindingFlags.NonPublic | BindingFlags.Instance)?.Invoke(rx, null);
+                        rx.ResetReceiver();
+                        bool scalePreserved = Mathf.Approximately(rxObj.transform.localScale.x, 1.43f);
+                        bool deliveredReset = !rx.IsDelivered;
+
+                        if (scalePreserved && deliveredReset)
+                        {
+                            LogPass("36. EnergyReceiver Scale Preservation & Reset", "Receiver maintains exact 1.43f prefab scale and resets cleanly");
+                            passed++;
+                        }
+                        else
+                        {
+                            LogFail("36. EnergyReceiver Scale Preservation & Reset", $"Scale={rxObj.transform.localScale.x}, DeliveredReset={deliveredReset}");
+                        }
+                    }
+                    else
+                    {
+                        LogFail("36. EnergyReceiver Scale Preservation & Reset", "AddComponent<EnergyReceiver>() returned null");
+                    }
                 }
-                else LogFail("36. EnergyReceiver Scale Preservation & Reset", $"Scale={rxObj?.transform.localScale.x}, DeliveredReset={deliveredReset}");
+                finally
+                {
+                    Object.DestroyImmediate(rxObj);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LogFail("36. EnergyReceiver Scale Preservation & Reset", $"Exception: {ex.Message}");
             }
 
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");

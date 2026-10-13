@@ -206,7 +206,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 94029292}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -3.4339466
@@ -452,7 +452,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 232145596}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -1.197403
@@ -553,7 +553,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 441928723}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 1.2080631
@@ -776,7 +776,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 525859706}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -10.898306
@@ -1182,7 +1182,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 891307868}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -8.856842
@@ -1283,7 +1283,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 981202952}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -9.24675
@@ -1560,7 +1560,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1223065965}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 2.5832844
@@ -1661,7 +1661,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1227969916}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 0.25190926
@@ -2081,7 +2081,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1452902860}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -3.6911583
@@ -2182,7 +2182,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1586652273}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 3.6510253
@@ -2241,21 +2241,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!115 &1620591240
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: SlowSpinner
-  m_Namespace: NebulaRelay.World
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &1623950557
 GameObject:
   m_ObjectHideFlags: 0
@@ -2298,7 +2283,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1623950557}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 1.7176476
@@ -2399,7 +2384,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1783108270}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1620591240}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 5.680944

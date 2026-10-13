@@ -35,6 +35,9 @@ namespace NebulaRelay.World
                 cam.backgroundColor = new Color(0.02f, 0.031f, 0.086f, 1f); // #050816
             }
 
+            // If environment layers have already been spawned, do not duplicate them
+            if (transform.childCount > 0) return;
+
             // Ensure Parallax Background component exists
             ParallaxBackground parallax = GetComponent<ParallaxBackground>();
             if (parallax == null)
@@ -120,19 +123,6 @@ namespace NebulaRelay.World
                 // Continuous drifting asteroid field
                 parallax.AddLayer(clusterObj.transform, 0.14f, new Vector2(-0.06f, 0.02f), false, "AsteroidBelt");
             }
-        }
-    }
-
-    /// <summary>
-    /// Helper component for slow continuous rotation of background celestial bodies.
-    /// </summary>
-    public class SlowSpinner : MonoBehaviour
-    {
-        public float spinSpeed = 5f;
-
-        private void Update()
-        {
-            transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime);
         }
     }
 }

@@ -222,7 +222,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 172278891}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 0.94685173
@@ -431,7 +431,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 490189107}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 4.4982634
@@ -589,7 +589,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 537334705}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -6.0955753
@@ -690,7 +690,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 675232252}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -10.413986
@@ -856,7 +856,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 717221037}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -2.991356
@@ -957,7 +957,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 717223521}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -5.205742
@@ -1058,7 +1058,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 739118969}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -11.170551
@@ -1361,21 +1361,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 360f648eb32f4bf29bf9e579cde464d7, type: 3}
---- !u!115 &1033236543
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: SlowSpinner
-  m_Namespace: NebulaRelay.World
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &1040712847
 GameObject:
   m_ObjectHideFlags: 0
@@ -1418,7 +1403,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1040712847}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -10.89492
@@ -1580,7 +1565,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1276543380}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -3.5773125
@@ -2198,7 +2183,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1458400264}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 8.116962
@@ -2498,7 +2483,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1795643334}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: 0.4875393
@@ -2808,7 +2793,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2044192871}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1033236543}
+  m_Script: {fileID: 11500000, guid: 8aa1c8a3224ab68488febf4c9dde61e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   spinSpeed: -11.403126

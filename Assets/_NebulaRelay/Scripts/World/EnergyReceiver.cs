@@ -29,11 +29,14 @@ namespace NebulaRelay.World
         public event Action<EnergyReceiver> OnDeliverySuccess;
 
         private Collider2D col;
+        private Vector3 initialScale;
+        private Coroutine pulseRoutine;
 
         private void Awake()
         {
             col = GetComponent<Collider2D>();
             col.isTrigger = true; // Must be trigger
+            initialScale = transform.localScale;
 
             if (spriteRenderer == null)
             {
@@ -41,6 +44,18 @@ namespace NebulaRelay.World
             }
 
             EnsureVisibleSprite();
+            UpdateVisuals();
+        }
+
+        public void ResetReceiver()
+        {
+            IsDelivered = false;
+            if (pulseRoutine != null)
+            {
+                StopCoroutine(pulseRoutine);
+                pulseRoutine = null;
+            }
+            transform.localScale = initialScale;
             UpdateVisuals();
         }
 
@@ -71,10 +86,29 @@ namespace NebulaRelay.World
 
             // Update visuals & pulse
             UpdateVisuals();
-            transform.localScale = Vector3.one * 1.25f;
+            if (pulseRoutine != null) StopCoroutine(pulseRoutine);
+            pulseRoutine = StartCoroutine(PulseDeliveredRoutine());
 
             // Fire event
             OnDeliverySuccess?.Invoke(this);
+        }
+
+        private System.Collections.IEnumerator PulseDeliveredRoutine()
+        {
+            float elapsed = 0f;
+            float duration = 0.5f;
+            Vector3 peakScale = initialScale * 1.25f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Sin((elapsed / duration) * Mathf.PI);
+                transform.localScale = Vector3.Lerp(initialScale, peakScale, t);
+                yield return null;
+            }
+
+            transform.localScale = initialScale;
+            pulseRoutine = null;
         }
 
         private void UpdateVisuals()
@@ -139,18 +173,7 @@ namespace NebulaRelay.World
             return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32f);
         }
 
-        private void OnGUI()
-        {
-            if (!IsDelivered) return;
 
-            // Simple delivery confirmed label on screen
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
-            labelStyle.fontSize = 13;
-            labelStyle.fontStyle = FontStyle.Bold;
-            labelStyle.normal.textColor = new Color(0.2f, 1f, 0.5f);
-
-            GUI.Label(new Rect(20, 95, 340, 25), "RECEIVER: ENERGY DELIVERED (1/1)", labelStyle);
-        }
 
         private void OnDrawGizmos()
         {

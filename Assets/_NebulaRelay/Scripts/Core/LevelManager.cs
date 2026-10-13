@@ -59,9 +59,10 @@ namespace NebulaRelay.Core
         public LevelState State { get; private set; } = LevelState.InFlight;
         public int LevelNumber => levelNumber;
         public string LevelTitle => levelTitle;
-        public float RemainingTime { get; private set; } = MissionDurationSeconds;
-        public float MissionDuration => MissionDurationSeconds;
-        public float ElapsedTime => MissionDurationSeconds - RemainingTime;
+        public float RemainingTime { get; private set; } = 120.0f;
+        public float MissionDuration => SettingsManager.GetMissionDuration();
+        public float ElapsedTime => Mathf.Max(0f, MissionDuration - RemainingTime);
+        public GameDifficulty Difficulty => SettingsManager.CurrentDifficulty;
 
         public DroneController Drone => drone;
         public BatteryManager Battery => battery;
@@ -104,7 +105,7 @@ namespace NebulaRelay.Core
                 gameObject.AddComponent<ScoreManager>();
             }
 
-            RemainingTime = MissionDurationSeconds;
+            RemainingTime = MissionDuration;
             State = LevelState.InFlight;
         }
 

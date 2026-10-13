@@ -168,7 +168,10 @@ namespace NebulaRelay.Delivery
             }
             if (allowMouseClickFire && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
-                fireRequested = true;
+                if (!NebulaRelay.UI.HUDController.IsPointerOverUI(Mouse.current.position.ReadValue()))
+                {
+                    fireRequested = true;
+                }
             }
 
             if (fireRequested)

@@ -102,8 +102,9 @@ namespace NebulaRelay.World
 
                 if (battery != null)
                 {
-                    battery.ConsumeBattery(collisionBatteryDamage);
-                    LevelManager.Instance?.SetHUDMessage($"COLLISION DAMAGE! -{collisionBatteryDamage:F0}% Battery", 2.0f, true);
+                    float effectiveDamage = collisionBatteryDamage * SettingsManager.GetHazardDamageMultiplier();
+                    battery.ConsumeBattery(effectiveDamage);
+                    LevelManager.Instance?.SetHUDMessage($"COLLISION DAMAGE! -{effectiveDamage:F0}% Battery", 2.0f, true);
                 }
             }
 

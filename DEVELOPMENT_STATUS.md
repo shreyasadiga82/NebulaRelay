@@ -102,7 +102,7 @@ Assets/_NebulaRelay/
 
 ## 4. Verification & Testing Summary
 
-32 out of 32 automated validation tests passed (`Drift Core > Run All 32 Verification Tests`):
+36 out of 36 automated validation tests passed (`Drift Core > Run All 36 Verification Tests`):
 1. **Zero-Gravity Linear Motion**: Verified $p(t) = p_0 + v_0 t$.
 2. **Acceleration Integration**: Verified $p(t) = p_0 + v_0 t + \frac{1}{2} a t^2$.
 3. **Trajectory Preview Alignment**: Verified mathematical overlap between preview points and projectile path.
@@ -123,3 +123,9 @@ Assets/_NebulaRelay/
 18. **Zero Prefab Scale Overrides in Scenes**: Verified no `propertyPath: m_LocalScale` overrides in any level scene.
 19. **Prefab World Target Sizing**: Drone 1.20u, Ring 2.40u, Relay 3.20u, Asteroid 1.39u, Capsule 0.40u, Receiver 1.50u.
 20. **UI Scaling & Font Size Integrity**: Verified scale factors across 1366x768, 1536x864, 1920x1080, 2560x1440, 1280x800, and minimum font size >= 14px.
+21. **Audio Pool Round-Robin**: 4-source audio collision pool eliminates garbage collection.
+22. **19 Audio WAV Files**: PCM sound effects generated procedurally across all gameplay events.
+23. **Difficulty Configuration Parameters (Test 33)**: Easy (150s, $\le 1.8$ m/s, 0.67x dmg, 0.75x drain), Medium (120s, $\le 1.5$ m/s, 1.0x dmg, 1.0x drain), Hard (90s, $\le 1.2$ m/s, 1.5x dmg, 1.35x drain, 1.5x score).
+24. **Hard 1.5x Score Multiplier (Test 34)**: Verified subtotal 1100 + 50% bonus (550) = 1650 total score.
+25. **UI Pointer Guard (Test 35)**: Capsule launches blocked when clicking Pause button or UI telemetry cards.
+26. **EnergyReceiver Scale Preservation (Test 36)**: Initial prefab scale preserved on delivery without hardcoded downscaling, raw OnGUI removed, clean reset logic added.

@@ -22,7 +22,7 @@ namespace NebulaRelay.Editor
             EditorApplication.delayCall += RunAllTests;
         }
 
-        [MenuItem("Drift Core/Run All 32 Verification Tests", priority = 3)]
+        [MenuItem("Drift Core/Run All 36 Verification Tests", priority = 3)]
         public static void RunAllTests()
         {
             if (EditorApplication.isPlaying)
@@ -31,10 +31,10 @@ namespace NebulaRelay.Editor
             }
 
             int passed = 0;
-            int total = 32;
+            int total = 36;
 
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
-            Debug.Log("<b><color=#00E5FF>[DRIFT CORE] STARTING AUTOMATED TEST SUITE (32 TESTS)</color></b>");
+            Debug.Log("<b><color=#00E5FF>[DRIFT CORE] STARTING AUTOMATED TEST SUITE (36 TESTS)</color></b>");
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
 
             // Test 1: Projectile Math - Zero Gravity Linear Prediction
@@ -681,6 +681,113 @@ namespace NebulaRelay.Editor
                     passed++;
                 }
                 else LogFail("32. Scene and Prefab Wiring Integrity", "One or more scenes were missing or invalid");
+            }
+
+            // Test 33: Difficulty Configuration Parameters (Easy, Medium, Hard)
+            {
+                bool durOk = Mathf.Approximately(SettingsManager.GetMissionDuration(GameDifficulty.Easy), 150f)
+                          && Mathf.Approximately(SettingsManager.GetMissionDuration(GameDifficulty.Medium), 120f)
+                          && Mathf.Approximately(SettingsManager.GetMissionDuration(GameDifficulty.Hard), 90f);
+
+                bool speedOk = Mathf.Approximately(SettingsManager.GetMaxSafeDockingSpeed(GameDifficulty.Easy), 1.8f)
+                            && Mathf.Approximately(SettingsManager.GetMaxSafeDockingSpeed(GameDifficulty.Medium), 1.5f)
+                            && Mathf.Approximately(SettingsManager.GetMaxSafeDockingSpeed(GameDifficulty.Hard), 1.2f);
+
+                bool dmgOk = Mathf.Approximately(SettingsManager.GetHazardDamageMultiplier(GameDifficulty.Easy), 0.67f)
+                          && Mathf.Approximately(SettingsManager.GetHazardDamageMultiplier(GameDifficulty.Medium), 1.0f)
+                          && Mathf.Approximately(SettingsManager.GetHazardDamageMultiplier(GameDifficulty.Hard), 1.5f);
+
+                bool drainOk = Mathf.Approximately(SettingsManager.GetBatteryDrainMultiplier(GameDifficulty.Easy), 0.75f)
+                            && Mathf.Approximately(SettingsManager.GetBatteryDrainMultiplier(GameDifficulty.Medium), 1.0f)
+                            && Mathf.Approximately(SettingsManager.GetBatteryDrainMultiplier(GameDifficulty.Hard), 1.35f);
+
+                bool scoreOk = Mathf.Approximately(SettingsManager.GetScoreMultiplier(GameDifficulty.Easy), 1.0f)
+                            && Mathf.Approximately(SettingsManager.GetScoreMultiplier(GameDifficulty.Medium), 1.0f)
+                            && Mathf.Approximately(SettingsManager.GetScoreMultiplier(GameDifficulty.Hard), 1.5f);
+
+                if (durOk && speedOk && dmgOk && drainOk && scoreOk)
+                {
+                    LogPass("33. Difficulty Configuration Parameters", "Easy (150s, 1.8m/s, 0.67x dmg, 0.75x drain), Medium (120s, 1.5m/s), Hard (90s, 1.2m/s, 1.5x dmg, 1.35x drain, 1.5x score)");
+                    passed++;
+                }
+                else LogFail("33. Difficulty Configuration Parameters", $"Mismatch: dur={durOk}, spd={speedOk}, dmg={dmgOk}, drain={drainOk}, score={scoreOk}");
+            }
+
+            // Test 34: Difficulty Score Calculation & Hard Multiplier (1.5x)
+            {
+                GameObject scoreObj = new GameObject("ScoreTestObj");
+                ScoreManager sm = scoreObj.AddComponent<ScoreManager>();
+
+                // Set difficulty to Hard
+                SettingsManager.SetDifficulty(GameDifficulty.Hard);
+
+                sm.AwardRelayPoints(1, Vector3.zero, 100);
+                sm.AwardRelayPoints(2, Vector3.zero, 100);
+                sm.AwardRelayPoints(3, Vector3.zero, 100);
+                sm.AwardRelayPoints(4, Vector3.zero, 100);
+
+                // Subtotal: 400 relays + 250 completion + (60 * 5 = 300) time + (1 * 150 = 150) capsule = 1100
+                // Hard 1.5x: 1100 * 1.5 = 1650 pts (difficultyBonus = 550)
+                sm.FinalizeMissionScore(60f, 1);
+
+                bool hardScoreValid = (sm.SubtotalScore == 1100) && (sm.DifficultyBonus == 550) && (sm.TotalScore == 1650);
+
+                // Reset back to Medium
+                SettingsManager.SetDifficulty(GameDifficulty.Medium);
+                Object.DestroyImmediate(scoreObj);
+
+                if (hardScoreValid)
+                {
+                    LogPass("34. Hard Difficulty 1.5x Score Multiplier", "Subtotal 1100 + Hard 50% bonus (550 pts) = 1650 Total");
+                    passed++;
+                }
+                else LogFail("34. Hard Difficulty 1.5x Score Multiplier", $"Expected 1650 total, got {sm.TotalScore}");
+            }
+
+            // Test 35: UI Input Guard (Blocks Mouse Firing Over Telemetry & Buttons)
+            {
+                GameObject hudObj = new GameObject("HUDTestObj");
+                HUDController hud = hudObj.AddComponent<HUDController>();
+
+                // Simulated top bar coordinate (y = 50 in GUI space => screen Y = Screen.height - 50)
+                float topScreenY = Screen.height - (50f * UIScale.GetScale());
+                Vector2 topMouse = new Vector2(Screen.width / 2f, topScreenY);
+
+                // Simulated center playfield coordinate (y = 360 in GUI space)
+                float centerScreenY = Screen.height - (360f * UIScale.GetScale());
+                Vector2 centerMouse = new Vector2(Screen.width / 2f, centerScreenY);
+
+                bool topBlocked = HUDController.IsPointerOverUI(topMouse);
+                bool centerAllowed = !HUDController.IsPointerOverUI(centerMouse);
+
+                Object.DestroyImmediate(hudObj);
+
+                if (topBlocked && centerAllowed)
+                {
+                    LogPass("35. UI Pointer Input Guard", "Capsule launching correctly blocked over top HUD bar and permitted in playfield");
+                    passed++;
+                }
+                else LogFail("35. UI Pointer Input Guard", $"Guard failed: topBlocked={topBlocked}, centerAllowed={centerAllowed}");
+            }
+
+            // Test 36: EnergyReceiver Scale Preservation & Clean Reset
+            {
+                GameObject rxObj = new GameObject("RxTestObj");
+                rxObj.transform.localScale = new Vector3(1.43f, 1.43f, 1.0f);
+                EnergyReceiver rx = rxObj.AddComponent<EnergyReceiver>();
+
+                rx.ResetReceiver();
+                bool scalePreserved = Mathf.Approximately(rxObj.transform.localScale.x, 1.43f);
+                bool deliveredReset = !rx.IsDelivered;
+
+                Object.DestroyImmediate(rxObj);
+
+                if (scalePreserved && deliveredReset)
+                {
+                    LogPass("36. EnergyReceiver Scale Preservation & Reset", "Receiver maintains exact 1.43f prefab scale and resets cleanly");
+                    passed++;
+                }
+                else LogFail("36. EnergyReceiver Scale Preservation & Reset", $"Scale={rxObj?.transform.localScale.x}, DeliveredReset={deliveredReset}");
             }
 
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");

@@ -51,11 +51,51 @@ namespace NebulaRelay.UI
         private Texture2D whiteTex;
         private bool isStylesInit = false;
 
+        // Singleton & UI Input Guard
+        public static HUDController Instance { get; private set; }
+
         // Pause & Settings state
         private bool isPaused = false;
         private bool showSettings = false;
         private float viewWidth = 1280f;
         private float viewHeight = 720f;
+
+        private void Awake()
+        {
+            Instance = this;
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        public static bool IsPointerOverUI(Vector2 mouseScreenPos)
+        {
+            if (Instance == null) return false;
+            if (Instance.isPaused) return true;
+
+            var lm = LevelManager.Instance;
+            if (lm != null && (lm.State == LevelState.Completed || lm.State == LevelState.Failed))
+            {
+                return true;
+            }
+
+            float scale = UIScale.GetScale();
+            if (scale < 0.01f) return false;
+
+            float guiY = Screen.height - mouseScreenPos.y;
+            float refY = guiY / scale;
+
+            // Top HUD area (top bar + objective sub-bar): y in 0..165 reference units
+            if (refY <= 165f) return true;
+
+            // Bottom telemetry dock area: y in (viewHeight - 110)..viewHeight reference units
+            float viewH = UIScale.GetViewHeight();
+            if (refY >= viewH - 110f) return true;
+
+            return false;
+        }
 
         private void InitStyles()
         {
@@ -248,7 +288,8 @@ namespace NebulaRelay.UI
 
             // LEFT COLUMN: Mission ID, Score, Relay Progress
             GUILayout.BeginVertical(GUILayout.Width(barW * 0.42f));
-            GUILayout.Label($"MISSION {lm.LevelNumber:D2} : {lm.LevelTitle.ToUpper()}", titleHeaderStyle);
+            string diffTag = lm.Difficulty == GameDifficulty.Hard ? " <color=#FF3852>[HARD 1.5x]</color>" : (lm.Difficulty == GameDifficulty.Easy ? " <color=#2EF280>[EASY]</color>" : " <color=#00EAFF>[MED]</color>");
+            GUILayout.Label($"MISSION {lm.LevelNumber:D2} : {lm.LevelTitle.ToUpper()}{diffTag}", titleHeaderStyle);
 
             ScoreManager sm = ScoreManager.Instance;
             int score = sm != null ? sm.DisplayScore : 0;
@@ -633,6 +674,25 @@ namespace NebulaRelay.UI
             }
 
             GUILayout.Space(10);
+            GUILayout.Label($"DIFFICULTY LEVEL: {SettingsManager.CurrentDifficulty.ToString().ToUpper()}", cardHeaderStyle);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("EASY", SettingsManager.CurrentDifficulty == GameDifficulty.Easy ? pauseBtnStyle : buttonSciFiStyle, GUILayout.Height(36)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Easy);
+            }
+            GUILayout.Space(6);
+            if (GUILayout.Button("MEDIUM", SettingsManager.CurrentDifficulty == GameDifficulty.Medium ? pauseBtnStyle : buttonSciFiStyle, GUILayout.Height(36)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Medium);
+            }
+            GUILayout.Space(6);
+            if (GUILayout.Button("HARD (1.5x PTS)", SettingsManager.CurrentDifficulty == GameDifficulty.Hard ? pauseBtnStyle : buttonSciFiStyle, GUILayout.Height(36)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Hard);
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
             GUILayout.Label("CONTROLS: [WASD] Thrust  |  [Mouse] Aim  |  [Space/LMB] Launch Capsule  |  [R] Quick Restart", smallLabelStyle);
 
             GUILayout.FlexibleSpace();
@@ -698,6 +758,11 @@ namespace NebulaRelay.UI
             GUILayout.Label($"• TIME ELAPSED: {eMins:D2}:{eSecs:D2} (Time Bonus: +{timeBonus} pts)", statBody);
             GUILayout.Label($"• CAPSULES USED: {capsUsed}  |  REMAINING: {capsRemaining} (+{capBonus} pts)", statBody);
             GUILayout.Label($"• MISSION COMPLETION BONUS: +{compBonus} pts", statBody);
+            int diffBonus = sm != null ? sm.DifficultyBonus : 0;
+            if (diffBonus > 0)
+            {
+                GUILayout.Label($"• DIFFICULTY BONUS (HARD 1.5x): +{diffBonus} pts", statBody);
+            }
 
             GUILayout.Space(14);
 

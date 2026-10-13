@@ -353,11 +353,43 @@ namespace NebulaRelay.UI
                 targets = "RELAYS: 6 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
             }
 
+            int numRelays = (selectedMissionIndex == 1) ? 4 : ((selectedMissionIndex == 5) ? 6 : 5);
+            float duration = SettingsManager.GetMissionDuration();
+            int durMins = Mathf.FloorToInt(duration) / 60;
+            int durSecs = Mathf.FloorToInt(duration) % 60;
+            float safeSpd = SettingsManager.GetMaxSafeDockingSpeed();
+            float scoreMult = SettingsManager.GetScoreMultiplier();
+            string scoreTag = scoreMult > 1f ? $"  |  SCORE: {scoreMult:F1}x" : "";
+            targets = $"RELAYS: {numRelays} Compulsory  |  CAPSULES: 2 Max  |  TIME: {durMins:D2}:{durSecs:D2}  |  DOCK: ≤ {safeSpd:F1} m/s{scoreTag}";
+
             GUILayout.Label(desc, bodyStyle);
             GUILayout.Space(14);
             GUILayout.Label(targets, headerSubStyle);
 
             GUILayout.FlexibleSpace();
+
+            GUILayout.Label($"DIFFICULTY LEVEL: {SettingsManager.CurrentDifficulty.ToString().ToUpper()}", headerSubStyle);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("EASY", SettingsManager.CurrentDifficulty == GameDifficulty.Easy ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(38)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Easy);
+                AudioManager.Instance?.PlayButtonClick();
+            }
+            GUILayout.Space(6);
+            if (GUILayout.Button("MEDIUM", SettingsManager.CurrentDifficulty == GameDifficulty.Medium ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(38)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Medium);
+                AudioManager.Instance?.PlayButtonClick();
+            }
+            GUILayout.Space(6);
+            if (GUILayout.Button("HARD (1.5x)", SettingsManager.CurrentDifficulty == GameDifficulty.Hard ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(38)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Hard);
+                AudioManager.Instance?.PlayButtonClick();
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
 
             if (GUILayout.Button("START MISSION  ›", primaryBtnStyle, GUILayout.Height(52)))
             {
@@ -443,6 +475,28 @@ namespace NebulaRelay.UI
             {
                 SettingsManager.ToggleFullscreen();
             }
+
+            GUILayout.Space(10);
+            GUILayout.Label($"DIFFICULTY LEVEL: {SettingsManager.CurrentDifficulty.ToString().ToUpper()}", headerSubStyle);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("EASY", SettingsManager.CurrentDifficulty == GameDifficulty.Easy ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(36)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Easy);
+                AudioManager.Instance?.PlayButtonClick();
+            }
+            GUILayout.Space(6);
+            if (GUILayout.Button("MEDIUM", SettingsManager.CurrentDifficulty == GameDifficulty.Medium ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(36)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Medium);
+                AudioManager.Instance?.PlayButtonClick();
+            }
+            GUILayout.Space(6);
+            if (GUILayout.Button("HARD (1.5x)", SettingsManager.CurrentDifficulty == GameDifficulty.Hard ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(36)))
+            {
+                SettingsManager.SetDifficulty(GameDifficulty.Hard);
+                AudioManager.Instance?.PlayButtonClick();
+            }
+            GUILayout.EndHorizontal();
 
             GUILayout.Space(12);
             GUILayout.Label("FLIGHT CONTROLS:", headerSubStyle);

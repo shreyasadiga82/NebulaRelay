@@ -73,6 +73,8 @@ namespace NebulaRelay.World
 
         private void Start()
         {
+            maxSafeSpeed = SettingsManager.GetMaxSafeDockingSpeed();
+
             if (receiver == null)
             {
                 receiver = GetComponentInChildren<EnergyReceiver>();
@@ -83,6 +85,14 @@ namespace NebulaRelay.World
                 receiver.OnDeliverySuccess += HandleEnergyDelivered;
             }
 
+            UpdateVisuals();
+        }
+
+        public void ResetStation()
+        {
+            maxSafeSpeed = SettingsManager.GetMaxSafeDockingSpeed();
+            State = RelayState.Inactive;
+            lastLockWarningTime = -5f;
             UpdateVisuals();
         }
 
@@ -130,7 +140,7 @@ namespace NebulaRelay.World
             }
             else
             {
-                LevelManager.Instance?.SetHUDMessage("EXIT UNLOCKED! Approach dock below 1.5 m/s to complete mission.", 4.0f, false);
+                LevelManager.Instance?.SetHUDMessage($"EXIT UNLOCKED! Approach dock below {maxSafeSpeed:F1} m/s to complete mission.", 4.0f, false);
             }
         }
 

@@ -67,7 +67,8 @@ namespace NebulaRelay.Core
             // 1. Continuous thrust discharge
             if (drone != null && drone.IsThrusting)
             {
-                ConsumeBattery(thrustDrainRate * Time.deltaTime);
+                float multiplier = SettingsManager.GetBatteryDrainMultiplier();
+                ConsumeBattery(thrustDrainRate * multiplier * Time.deltaTime);
             }
 
             // 2. Discrete capsule launch discharge

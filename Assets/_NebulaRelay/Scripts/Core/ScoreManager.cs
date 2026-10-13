@@ -33,6 +33,8 @@ namespace NebulaRelay.Core
         private int timeBonus = 0;
         private int capsuleBonus = 0;
         private int completionBonus = 0;
+        private int difficultyBonus = 0;
+        private float scoreMultiplier = 1.0f;
 
         private readonly List<FloatingScore> floatingScores = new List<FloatingScore>();
         private readonly HashSet<int> scoredRelayIds = new HashSet<int>();
@@ -43,6 +45,9 @@ namespace NebulaRelay.Core
         public int TimeBonus => timeBonus;
         public int CapsuleBonus => capsuleBonus;
         public int CompletionBonus => completionBonus;
+        public int DifficultyBonus => difficultyBonus;
+        public float ScoreMultiplier => scoreMultiplier;
+        public int SubtotalScore => baseRelayScore + completionBonus + timeBonus + capsuleBonus;
         public int TotalScore => currentScore;
         public IReadOnlyList<FloatingScore> FloatingScores => floatingScores;
 
@@ -79,6 +84,8 @@ namespace NebulaRelay.Core
             timeBonus = 0;
             capsuleBonus = 0;
             completionBonus = 0;
+            difficultyBonus = 0;
+            scoreMultiplier = 1.0f;
             floatingScores.Clear();
             scoredRelayIds.Clear();
             OnScoreChanged?.Invoke(currentScore);
@@ -113,7 +120,8 @@ namespace NebulaRelay.Core
         }
 
         /// <summary>
-        /// Calculates final mission completion score including time and capsule efficiency bonuses.
+        /// Calculates final mission completion score including time and capsule efficiency bonuses
+        /// plus difficulty multiplier bonuses (e.g. 1.5x on Hard).
         /// </summary>
         public void FinalizeMissionScore(float remainingSeconds, int remainingCapsules)
         {
@@ -121,7 +129,11 @@ namespace NebulaRelay.Core
             timeBonus = Mathf.Max(0, Mathf.FloorToInt(remainingSeconds) * PointsPerRemainingSecond);
             capsuleBonus = Mathf.Max(0, remainingCapsules * PointsPerRemainingCapsule);
 
-            currentScore = baseRelayScore + completionBonus + timeBonus + capsuleBonus;
+            int subtotal = baseRelayScore + completionBonus + timeBonus + capsuleBonus;
+            scoreMultiplier = SettingsManager.GetScoreMultiplier();
+            difficultyBonus = Mathf.RoundToInt(subtotal * (scoreMultiplier - 1.0f));
+
+            currentScore = subtotal + difficultyBonus;
             animatedScore = currentScore; // Immediately set for results screen
             OnScoreChanged?.Invoke(currentScore);
         }

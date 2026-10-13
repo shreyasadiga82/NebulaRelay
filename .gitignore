@@ -13,6 +13,8 @@ ignore.conf
 Library/
 Temp/
 Builds/
+Logs/
+UserSettings/
 
 # Asset meta files for folders without user content
 !/[Aa]ssets/**/*.meta

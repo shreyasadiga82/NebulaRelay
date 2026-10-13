@@ -25,23 +25,74 @@ namespace NebulaRelay.Editor
             BuildLevel05Scene();
             ConfigureEditorBuildSettings();
 
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            EditorSceneManager.SaveOpenScenes();
+
             // Re-open Level 1 as the active working scene
             EditorSceneManager.OpenScene("Assets/_NebulaRelay/Scenes/Level_01.unity");
             Debug.Log("<color=#00FF66><b>[Drift Core] Calibrated Scales & Safe Scenes Generated! All 5 Levels and Main Menu constructed and registered in Build Settings.</b></color>");
         }
 
+        private const string BuildPathPrefKey = "DriftCore_StandaloneExePath";
+        public const string DefaultBuildExePath = "C:/Games/DriftCore/DriftCore.exe";
+
+        public static string GetConfiguredBuildPath()
+        {
+            return EditorPrefs.GetString(BuildPathPrefKey, DefaultBuildExePath);
+        }
+
+        [MenuItem("Drift Core/Set Build Output Path...", priority = 3)]
+        public static void SetBuildOutputPath()
+        {
+            string currentPath = GetConfiguredBuildPath();
+            string currentDir = System.IO.Path.GetDirectoryName(currentPath);
+            string selectedDir = EditorUtility.SaveFolderPanel("Select Standalone Build Folder", currentDir, "DriftCore");
+            if (!string.IsNullOrEmpty(selectedDir))
+            {
+                string newExePath = System.IO.Path.Combine(selectedDir, "DriftCore.exe").Replace('\\', '/');
+                EditorPrefs.SetString(BuildPathPrefKey, newExePath);
+                Debug.Log($"[Drift Core] Build output path set to: {newExePath}");
+            }
+        }
+
         [MenuItem("Drift Core/Build Windows Standalone (.exe)", priority = 2)]
         public static void BuildWindowsExecutable()
         {
-            BuildAllScenes();
+            // Do not rebuild all scenes synchronously immediately before BuildPlayer!
+            // First ensure any pending assets and open scenes are saved.
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            EditorSceneManager.SaveOpenScenes();
 
-            string buildDir = "Builds/Windows";
+            // Run in a delayed call so scene saving is fully finished first
+            EditorApplication.delayCall += ExecuteBuildProcess;
+        }
+
+        public static void ExecuteBuildProcess()
+        {
+            string exePath = GetConfiguredBuildPath();
+            string buildDir = System.IO.Path.GetDirectoryName(exePath);
+
+            // Clean previous build directory completely so no stale or partial files remain
+            if (System.IO.Directory.Exists(buildDir))
+            {
+                try
+                {
+                    System.IO.Directory.Delete(buildDir, true);
+                    Debug.Log($"[Drift Core] Cleaned previous build directory: {buildDir}");
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"[Drift Core] Warning cleaning build directory: {ex.Message}");
+                }
+            }
+
             if (!System.IO.Directory.Exists(buildDir))
             {
                 System.IO.Directory.CreateDirectory(buildDir);
             }
 
-            string exePath = $"{buildDir}/DriftCore.exe";
             string[] scenePaths = new string[]
             {
                 "Assets/_NebulaRelay/Scenes/MainMenu.unity",
@@ -60,16 +111,69 @@ namespace NebulaRelay.Editor
                 options = BuildOptions.None
             };
 
-            Debug.Log("[Drift Core] Starting Standalone Windows x64 build with 5 Sectors and Live Cosmic Motion...");
+            Debug.Log($"[Drift Core] Starting Standalone Windows x64 build to: {exePath}...");
             var report = BuildPipeline.BuildPlayer(opt);
             if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
             {
                 Debug.Log($"<color=#00FF66><b>[Drift Core] Standalone Windows Build Succeeded! Executable: {exePath} ({report.summary.totalSize / 1024 / 1024} MB)</b></color>");
+                VerifyBuildIntegrity(exePath, report);
             }
             else
             {
-                Debug.LogError($"[Drift Core] Build failed: {report.summary.result}");
+                Debug.LogError($"[Drift Core] Build failed with result: {report.summary.result} (Errors: {report.summary.totalErrors})");
             }
+        }
+
+        public static bool VerifyBuildIntegrity(string exePath, UnityEditor.Build.Reporting.BuildReport report = null)
+        {
+            string buildDir = System.IO.Path.GetDirectoryName(exePath);
+            string dataDir = System.IO.Path.Combine(buildDir, "DriftCore_Data");
+            if (!System.IO.Directory.Exists(dataDir))
+            {
+                Debug.LogError($"[Drift Core Integrity Error] Data directory missing: {dataDir}");
+                return false;
+            }
+
+            string[] requiredFiles = new string[]
+            {
+                "globalgamemanagers",
+                "level0",
+                "level1",
+                "level2",
+                "level3",
+                "level4",
+                "level5"
+            };
+
+            bool allValid = true;
+            foreach (string file in requiredFiles)
+            {
+                string fullPath = System.IO.Path.Combine(dataDir, file);
+                if (!System.IO.File.Exists(fullPath))
+                {
+                    Debug.LogError($"[Drift Core Integrity Error] Required build file missing: {file} at {fullPath}");
+                    allValid = false;
+                }
+                else
+                {
+                    System.IO.FileInfo fi = new System.IO.FileInfo(fullPath);
+                    if (fi.Length <= 0)
+                    {
+                        Debug.LogError($"[Drift Core Integrity Error] File {file} is empty (0 bytes)!");
+                        allValid = false;
+                    }
+                    else
+                    {
+                        Debug.Log($"[Drift Core Integrity] OK: {file} ({fi.Length} bytes)");
+                    }
+                }
+            }
+
+            if (allValid)
+            {
+                Debug.Log("<color=#00FF66><b>[Drift Core] Build integrity verified! All level0..5 and globalgamemanagers present and valid (> 0 bytes).</b></color>");
+            }
+            return allValid;
         }
 
         // ==========================================
@@ -354,7 +458,34 @@ namespace NebulaRelay.Editor
             gmObj.AddComponent<GameManager>();
 
             GameObject audioObj = new GameObject("AudioManager");
-            audioObj.AddComponent<AudioManager>();
+            AudioManager am = audioObj.AddComponent<AudioManager>();
+            AssignAudioClips(am);
+        }
+
+        private static void AssignAudioClips(AudioManager am)
+        {
+            if (am == null) return;
+            SerializedObject so = new SerializedObject(am);
+            so.FindProperty("capsuleLaunchClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Capsule_Launch.wav");
+            so.FindProperty("capsuleLaunchDeniedClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Capsule_Launch_Denied.wav");
+            so.FindProperty("capsuleHumClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Capsule_Hum.wav");
+            so.FindProperty("collisionLightClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Collision_Light.wav");
+            so.FindProperty("collisionHeavyClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Collision_Heavy.wav");
+            so.FindProperty("relayActivateClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Relay_Activate.wav");
+            so.FindProperty("relayScoreClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Relay_Score.wav");
+            so.FindProperty("exitUnlockedClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Exit_Unlocked.wav");
+            so.FindProperty("exitLockedDenialClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Exit_Locked_Denial.wav");
+            so.FindProperty("missionStartupClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Mission_Startup.wav");
+            so.FindProperty("missionCompleteClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Mission_Complete.wav");
+            so.FindProperty("missionFailedClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Mission_Failed.wav");
+            so.FindProperty("missionResetClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Mission_Reset.wav");
+            so.FindProperty("countdownWarningClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Countdown_Warning.wav");
+            so.FindProperty("countdownUrgentClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/Countdown_Urgent.wav");
+            so.FindProperty("uiClickClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/UI_Click.wav");
+            so.FindProperty("uiPauseClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/UI_Pause.wav");
+            so.FindProperty("uiResumeClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/UI_Resume.wav");
+            so.FindProperty("ambienceSpaceStationClip").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Ambience/Ambience_SpaceStation.wav");
+            so.ApplyModifiedProperties();
         }
 
         private static void CreateCosmicEnvironment(int sector, Sprite nebulaSprite, Sprite planetSprite, Sprite asteroidSprite)
@@ -400,7 +531,8 @@ namespace NebulaRelay.Editor
             gmObj.AddComponent<GameManager>();
 
             GameObject audioObj = new GameObject("AudioManager");
-            audioObj.AddComponent<AudioManager>();
+            AudioManager am = audioObj.AddComponent<AudioManager>();
+            AssignAudioClips(am);
 
             EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/MainMenu.unity");
         }

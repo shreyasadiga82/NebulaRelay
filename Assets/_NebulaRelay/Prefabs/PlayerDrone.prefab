@@ -200,6 +200,8 @@ MonoBehaviour:
   allowMouseClickFire: 1
   fireCooldown: 0.5
   maxSimultaneousCapsules: 1
+  remainingCapsules: 2
+  capsulesUsed: 0
   drawAimGizmo: 1
 --- !u!120 &6000000000000007
 LineRenderer:
@@ -328,6 +330,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   launcher: {fileID: 6000000000000006}
+  trajectoryMaterial: {fileID: 0}
   samplePoints: 30
   previewDuration: 1.5
   startWidth: 0.08

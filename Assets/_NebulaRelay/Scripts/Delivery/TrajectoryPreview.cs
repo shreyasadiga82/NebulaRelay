@@ -37,6 +37,9 @@ namespace NebulaRelay.Delivery
         [Tooltip("Reference to the CapsuleLauncher. If unassigned, finds one on this GameObject or in parent.")]
         [SerializeField] private CapsuleLauncher launcher;
 
+        [Header("Rendering")]
+        [SerializeField] private Material trajectoryMaterial;
+
         [Header("Preview Sampling (20–40 points)")]
         [Tooltip("Number of positions sampled along the predicted trajectory (between 20 and 40).")]
         [Range(20, 40)]
@@ -126,8 +129,12 @@ namespace NebulaRelay.Delivery
             );
             lineRenderer.colorGradient = gradient;
 
-            // Ensure valid unlit 2D material in URP
-            if (lineRenderer.sharedMaterial == null || lineRenderer.sharedMaterial.name == "Default-Line")
+            // Ensure valid unlit 2D material in URP without crashing if shader is stripped in standalone build
+            if (trajectoryMaterial != null)
+            {
+                lineRenderer.material = trajectoryMaterial;
+            }
+            else if (lineRenderer.sharedMaterial == null || lineRenderer.sharedMaterial.name == "Default-Line")
             {
                 Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default")
                              ?? Shader.Find("Sprites/Default");

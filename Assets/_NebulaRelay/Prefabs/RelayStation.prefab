@@ -145,8 +145,10 @@ MonoBehaviour:
   receiver: {fileID: 4000000000000014}
   stationRenderer: {fileID: 4000000000000002}
   beaconRenderer: {fileID: 0}
+  lockedColor: {r: 0.85, g: 0.15, b: 0.15, a: 1}
   inactiveColor: {r: 0.2, g: 0.3, b: 0.45, a: 1}
   deliveredColor: {r: 1, g: 0.75, b: 0.1, a: 1}
+  readyUnlockedColor: {r: 0, g: 0.95, b: 0.5, a: 1}
   activatedColor: {r: 0, g: 0.9, b: 1, a: 1}
 --- !u!114 &3124483228414596255
 MonoBehaviour:

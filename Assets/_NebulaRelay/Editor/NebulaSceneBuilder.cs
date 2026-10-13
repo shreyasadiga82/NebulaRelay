@@ -1,0 +1,374 @@
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering.Universal;
+using NebulaRelay.Core;
+using NebulaRelay.Player;
+using NebulaRelay.Delivery;
+using NebulaRelay.World;
+using NebulaRelay.UI;
+using NebulaRelay.Effects;
+
+namespace NebulaRelay.Editor
+{
+    [InitializeOnLoad]
+    public static class NebulaSceneBuilder
+    {
+        private const string k_BuildKey = "NebulaRelay.ScenesBuilt.v1";
+
+        static NebulaSceneBuilder()
+        {
+            EditorApplication.delayCall += CheckAndBuildScenes;
+        }
+
+        private static void CheckAndBuildScenes()
+        {
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+            {
+                EditorApplication.delayCall += CheckAndBuildScenes;
+                return;
+            }
+
+            if (!System.IO.File.Exists("Builds/Windows/NebulaRelay.exe"))
+            {
+                BuildWindowsExecutable();
+            }
+        }
+
+        [MenuItem("Nebula Relay/Build All 3 Levels & Main Menu", priority = 1)]
+        public static void BuildAllScenes()
+        {
+            BuildMainMenuScene();
+            BuildLevel01Scene();
+            BuildLevel02Scene();
+            BuildLevel03Scene();
+            ConfigureEditorBuildSettings();
+
+            // Re-open Level 1 as the active working scene
+            EditorSceneManager.OpenScene("Assets/_NebulaRelay/Scenes/Level_01.unity");
+            Debug.Log("<color=#00FF66><b>[Nebula Relay] Successfully constructed MainMenu and all 3 Levels! Registered in Build Settings.</b></color>");
+        }
+
+        [MenuItem("Nebula Relay/Build Windows Standalone (.exe)", priority = 2)]
+        public static void BuildWindowsExecutable()
+        {
+            BuildAllScenes();
+
+            string buildDir = "Builds/Windows";
+            if (!System.IO.Directory.Exists(buildDir))
+            {
+                System.IO.Directory.CreateDirectory(buildDir);
+            }
+
+            string exePath = $"{buildDir}/NebulaRelay.exe";
+            string[] scenePaths = new string[]
+            {
+                "Assets/_NebulaRelay/Scenes/MainMenu.unity",
+                "Assets/_NebulaRelay/Scenes/Level_01.unity",
+                "Assets/_NebulaRelay/Scenes/Level_02.unity",
+                "Assets/_NebulaRelay/Scenes/Level_03.unity"
+            };
+
+            BuildPlayerOptions opt = new BuildPlayerOptions
+            {
+                scenes = scenePaths,
+                locationPathName = exePath,
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.None
+            };
+
+            Debug.Log("[Nebula Relay] Starting Standalone Windows x64 build...");
+            var report = BuildPipeline.BuildPlayer(opt);
+            if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            {
+                Debug.Log($"<color=#00FF66><b>[Nebula Relay] Build Succeeded! Executable: {exePath} ({report.summary.totalSize / 1024 / 1024} MB)</b></color>");
+            }
+            else
+            {
+                Debug.LogError($"[Nebula Relay] Build failed: {report.summary.result}");
+            }
+        }
+
+        private static GameObject CreateSceneCamera(Color backgroundColor, float orthoSize = 8f)
+        {
+            GameObject camObj = new GameObject("Main Camera");
+            Camera cam = camObj.AddComponent<Camera>();
+            camObj.AddComponent<AudioListener>();
+            camObj.tag = "MainCamera";
+
+            cam.orthographic = true;
+            cam.orthographicSize = orthoSize;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = backgroundColor;
+            camObj.transform.position = new Vector3(0, 0, -10f);
+
+            // Add URP camera data
+            UniversalAdditionalCameraData urpCam = camObj.AddComponent<UniversalAdditionalCameraData>();
+            urpCam.renderPostProcessing = false;
+
+            return camObj;
+        }
+
+        private static void CreateGlobalLight()
+        {
+            GameObject lightObj = new GameObject("Global Light 2D");
+            Light2D light = lightObj.AddComponent<Light2D>();
+            light.lightType = Light2D.LightType.Global;
+            light.color = Color.white;
+            light.intensity = 1.0f;
+        }
+
+        private static GameObject CreatePlayerDrone(Vector3 position)
+        {
+            string prefabPath = "Assets/_NebulaRelay/Prefabs/PlayerDrone.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            GameObject drone;
+            if (prefab != null)
+            {
+                drone = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                drone.transform.position = position;
+            }
+            else
+            {
+                drone = new GameObject("PlayerDrone");
+                drone.transform.position = position;
+                drone.tag = "Player";
+                drone.AddComponent<DroneController>();
+                drone.AddComponent<CapsuleLauncher>();
+                drone.AddComponent<TrajectoryPreview>();
+                drone.AddComponent<BatteryManager>();
+            }
+
+            return drone;
+        }
+
+        private static GameObject CreateRing(int order, Vector3 position)
+        {
+            string prefabPath = "Assets/_NebulaRelay/Prefabs/RingGate.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            GameObject ring;
+            if (prefab != null)
+            {
+                ring = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                ring.transform.position = position;
+            }
+            else
+            {
+                ring = new GameObject($"RingGate_{order}");
+                ring.transform.position = position;
+                ring.AddComponent<RingGate>();
+            }
+
+            RingGate gate = ring.GetComponent<RingGate>();
+            if (gate != null)
+            {
+                SerializedObject so = new SerializedObject(gate);
+                so.FindProperty("ringOrder").intValue = order;
+                so.ApplyModifiedProperties();
+            }
+
+            return ring;
+        }
+
+        private static GameObject CreateRelayStation(int index, Vector3 position)
+        {
+            string prefabPath = "Assets/_NebulaRelay/Prefabs/RelayStation.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            GameObject relay;
+            if (prefab != null)
+            {
+                relay = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                relay.transform.position = position;
+            }
+            else
+            {
+                relay = new GameObject($"RelayStation_{index}");
+                relay.transform.position = position;
+                relay.AddComponent<RelayStation>();
+            }
+
+            RelayStation station = relay.GetComponent<RelayStation>();
+            if (station != null)
+            {
+                SerializedObject so = new SerializedObject(station);
+                so.FindProperty("relayIndex").intValue = index;
+                so.ApplyModifiedProperties();
+            }
+
+            return relay;
+        }
+
+        private static GameObject CreateAsteroid(Vector3 position, float rotSpeed = 15f, Vector2 patrolOffset = default, float patrolSpeed = 1f)
+        {
+            string prefabPath = "Assets/_NebulaRelay/Prefabs/AsteroidHazard.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            GameObject asteroid;
+            if (prefab != null)
+            {
+                asteroid = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                asteroid.transform.position = position;
+            }
+            else
+            {
+                asteroid = new GameObject("AsteroidHazard");
+                asteroid.transform.position = position;
+                asteroid.AddComponent<AsteroidHazard>();
+            }
+
+            AsteroidHazard hazard = asteroid.GetComponent<AsteroidHazard>();
+            if (hazard != null)
+            {
+                SerializedObject so = new SerializedObject(hazard);
+                so.FindProperty("rotationSpeed").floatValue = rotSpeed;
+                so.FindProperty("patrolOffset").vector2Value = patrolOffset;
+                so.FindProperty("patrolSpeed").floatValue = patrolSpeed;
+                so.ApplyModifiedProperties();
+            }
+
+            return asteroid;
+        }
+
+        private static void CreateManagers(int levelNumber, string levelTitle)
+        {
+            // Level Coordinator
+            GameObject levelMgrObj = new GameObject("LevelManager");
+            LevelManager lm = levelMgrObj.AddComponent<LevelManager>();
+            SerializedObject so = new SerializedObject(lm);
+            so.FindProperty("levelNumber").intValue = levelNumber;
+            so.FindProperty("levelTitle").stringValue = levelTitle;
+            so.ApplyModifiedProperties();
+
+            // HUD Controller
+            levelMgrObj.AddComponent<HUDController>();
+
+            // Persistent Core Managers
+            GameObject coreObj = new GameObject("CoreManagers");
+            coreObj.AddComponent<GameManager>();
+            coreObj.AddComponent<AudioManager>();
+        }
+
+        // ==========================================
+        // 1. MAIN MENU SCENE
+        // ==========================================
+        public static void BuildMainMenuScene()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            CreateSceneCamera(new Color(0.043f, 0.059f, 0.102f, 1f)); // #0B0F1A space black
+            CreateGlobalLight();
+
+            GameObject menuObj = new GameObject("MainMenuController");
+            menuObj.AddComponent<MainMenuController>();
+            menuObj.AddComponent<GameManager>();
+            menuObj.AddComponent<AudioManager>();
+
+            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/MainMenu.unity");
+        }
+
+        // ==========================================
+        // 2. LEVEL 1: FIRST SIGNAL
+        // ==========================================
+        public static void BuildLevel01Scene()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            CreateSceneCamera(new Color(0.043f, 0.059f, 0.102f, 1f), 7f);
+            CreateGlobalLight();
+
+            CreatePlayerDrone(new Vector3(-6f, 0f, 0f));
+            CreateRing(1, new Vector3(-2f, 1f, 0f));
+            CreateRing(2, new Vector3(2.5f, 2f, 0f));
+            CreateRelayStation(1, new Vector3(8f, 1.5f, 0f));
+
+            GameObject ringMgrObj = new GameObject("RingManager");
+            ringMgrObj.AddComponent<RingManager>();
+
+            CreateManagers(1, "First Signal");
+
+            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/Level_01.unity");
+        }
+
+        // ==========================================
+        // 3. LEVEL 2: THE DEBRIS FIELD
+        // ==========================================
+        public static void BuildLevel02Scene()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            CreateSceneCamera(new Color(0.043f, 0.059f, 0.102f, 1f), 8.5f);
+            CreateGlobalLight();
+
+            CreatePlayerDrone(new Vector3(-8f, 0f, 0f));
+
+            CreateRing(1, new Vector3(-4f, -1.5f, 0f));
+            CreateAsteroid(new Vector3(-1f, 1.5f, 0f), 20f, new Vector2(0f, 1f), 1.2f);
+
+            CreateRing(2, new Vector3(1f, 2f, 0f));
+            CreateAsteroid(new Vector3(4.5f, 0f, 0f), -15f, new Vector2(0f, 1.5f), 0.8f);
+
+            CreateRing(3, new Vector3(6.5f, -2f, 0f));
+            CreateRelayStation(2, new Vector3(11f, 0f, 0f));
+
+            GameObject ringMgrObj = new GameObject("RingManager");
+            ringMgrObj.AddComponent<RingManager>();
+
+            CreateManagers(2, "The Debris Field");
+
+            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/Level_02.unity");
+        }
+
+        // ==========================================
+        // 4. LEVEL 3: THE LAST TRANSMISSION
+        // ==========================================
+        public static void BuildLevel03Scene()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            CreateSceneCamera(new Color(0.043f, 0.059f, 0.102f, 1f), 10f);
+            CreateGlobalLight();
+
+            CreatePlayerDrone(new Vector3(-10f, 0f, 0f));
+
+            CreateRing(1, new Vector3(-6f, 2.5f, 0f));
+            CreateAsteroid(new Vector3(-3f, 4f, 0f), 25f);
+            CreateAsteroid(new Vector3(-3f, 0.5f, 0f), -20f);
+
+            CreateRing(2, new Vector3(0f, 1f, 0f));
+            CreateAsteroid(new Vector3(3.5f, 2.5f, 0f), 18f, new Vector2(0f, 2f), 1.5f);
+            CreateAsteroid(new Vector3(3.5f, -2.5f, 0f), -18f, new Vector2(0f, -1.5f), 1.2f);
+
+            CreateRing(3, new Vector3(7f, -1.5f, 0f));
+            CreateRelayStation(3, new Vector3(13f, 1f, 0f));
+
+            GameObject ringMgrObj = new GameObject("RingManager");
+            ringMgrObj.AddComponent<RingManager>();
+
+            CreateManagers(3, "The Last Transmission");
+
+            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/Level_03.unity");
+        }
+
+        private static void ConfigureEditorBuildSettings()
+        {
+            string[] scenePaths = new string[]
+            {
+                "Assets/_NebulaRelay/Scenes/MainMenu.unity",
+                "Assets/_NebulaRelay/Scenes/Level_01.unity",
+                "Assets/_NebulaRelay/Scenes/Level_02.unity",
+                "Assets/_NebulaRelay/Scenes/Level_03.unity"
+            };
+
+            EditorBuildSettingsScene[] buildScenes = new EditorBuildSettingsScene[scenePaths.Length];
+            for (int i = 0; i < scenePaths.Length; i++)
+            {
+                buildScenes[i] = new EditorBuildSettingsScene(scenePaths[i], true);
+            }
+
+            EditorBuildSettings.scenes = buildScenes;
+        }
+    }
+}

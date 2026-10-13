@@ -221,6 +221,23 @@ namespace NebulaRelay.Player
             }
         }
 
+        private float lastImpactSoundTime = -1f;
+
+        private void OnCollisionEnter2D(Collision2D collision)
+        {
+            if (collision == null || collision.collider == null) return;
+            if (Time.time - lastImpactSoundTime < 0.15f) return;
+
+            float impactSpeed = collision.relativeVelocity.magnitude;
+            if (impactSpeed < 0.6f) return;
+
+            lastImpactSoundTime = Time.time;
+            bool isHeavy = collision.collider.GetComponent<World.AsteroidHazard>() != null 
+                        || collision.collider.GetComponentInParent<World.AsteroidHazard>() != null;
+
+            Effects.AudioManager.Instance?.PlayCollisionSound(impactSpeed, isHeavy);
+        }
+
         /// <summary>
         /// Rotates the drone smoothly towards heading/thrust direction using Rigidbody2D.MoveRotation.
         /// </summary>

@@ -183,7 +183,7 @@ namespace NebulaRelay.Delivery
             {
                 if (remainingCapsules <= 0)
                 {
-                    AudioManager.Instance?.PlayMissionLocked();
+                    AudioManager.Instance?.PlayLaunchDeniedSound();
                     LevelManager.Instance?.SetHUDMessage("NO CAPSULES REMAINING!", 1.5f, true);
                 }
                 return false;
@@ -201,8 +201,8 @@ namespace NebulaRelay.Delivery
             nextFireTime = Time.time + fireCooldown;
 
             OnCapsuleCountChanged?.Invoke(remainingCapsules, MaxCapsulesPerMission);
-            AudioManager.Instance?.PlayLaunch();
-            AudioManager.Instance?.SetProjectileInFlight(true);
+            AudioManager.Instance?.PlayLaunchSound();
+            AudioManager.Instance?.SetCapsuleInFlight(true);
 
             Vector3 spawnPos = GetLaunchPosition();
             GameObject capsuleObj;
@@ -237,7 +237,7 @@ namespace NebulaRelay.Delivery
 
             if (activeCapsulesCount == 0)
             {
-                AudioManager.Instance?.SetProjectileInFlight(false);
+                AudioManager.Instance?.SetCapsuleInFlight(false);
             }
 
             // Check if player has exhausted all capsules with no viable way to complete objective

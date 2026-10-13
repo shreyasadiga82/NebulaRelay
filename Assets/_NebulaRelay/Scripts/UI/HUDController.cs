@@ -184,8 +184,8 @@ namespace NebulaRelay.UI
             isPaused = !isPaused;
             showSettings = false;
             Time.timeScale = isPaused ? 0f : 1f;
-            if (isPaused) AudioManager.Instance?.PlayPause();
-            else AudioManager.Instance?.PlayResume();
+            if (isPaused) AudioManager.Instance?.PlayPauseSound();
+            else AudioManager.Instance?.PlayResumeSound();
         }
 
         private void OnGUI()
@@ -541,6 +541,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("RESUME", buttonSciFiStyle, GUILayout.Height(48)))
             {
+                AudioManager.Instance?.PlayUISound();
                 TogglePause();
             }
 
@@ -548,6 +549,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("RESTART MISSION", buttonSciFiStyle, GUILayout.Height(48)))
             {
+                AudioManager.Instance?.PlayUISound();
                 Time.timeScale = 1f;
                 LevelManager.Instance?.RestartLevel();
             }
@@ -556,6 +558,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("SETTINGS", buttonSciFiStyle, GUILayout.Height(48)))
             {
+                AudioManager.Instance?.PlayUISound();
                 showSettings = true;
             }
 
@@ -563,6 +566,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("MAIN MENU", buttonSciFiStyle, GUILayout.Height(48)))
             {
+                AudioManager.Instance?.PlayUISound();
                 Time.timeScale = 1f;
                 SceneManager.LoadScene("MainMenu");
             }
@@ -635,6 +639,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("‹ BACK", buttonSciFiStyle, GUILayout.Height(46)))
             {
+                AudioManager.Instance?.PlayUISound();
                 showSettings = false;
             }
 
@@ -712,6 +717,7 @@ namespace NebulaRelay.UI
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(advanceText, buttonSciFiStyle, GUILayout.Height(50)))
             {
+                AudioManager.Instance?.PlayUISound();
                 Time.timeScale = 1f;
                 lm.AdvanceToNextLevel();
             }
@@ -720,6 +726,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("RETRY MISSION", buttonSciFiStyle, GUILayout.Height(50)))
             {
+                AudioManager.Instance?.PlayUISound();
                 Time.timeScale = 1f;
                 lm.RestartLevel();
             }
@@ -729,6 +736,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("MAIN MENU", buttonSciFiStyle, GUILayout.Height(42)))
             {
+                AudioManager.Instance?.PlayUISound();
                 Time.timeScale = 1f;
                 SceneManager.LoadScene("MainMenu");
             }
@@ -766,6 +774,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("RETRY [R]", buttonSciFiStyle, GUILayout.Height(50)))
             {
+                AudioManager.Instance?.PlayUISound();
                 Time.timeScale = 1f;
                 lm.RestartLevel();
             }
@@ -774,6 +783,7 @@ namespace NebulaRelay.UI
 
             if (GUILayout.Button("MAIN MENU", buttonSciFiStyle, GUILayout.Height(46)))
             {
+                AudioManager.Instance?.PlayUISound();
                 Time.timeScale = 1f;
                 SceneManager.LoadScene("MainMenu");
             }

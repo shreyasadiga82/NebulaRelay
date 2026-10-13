@@ -86,7 +86,8 @@ namespace NebulaRelay.World
 
                 // Award points & floating text
                 ScoreManager.Instance?.AwardRelayPoints(ring.GetInstanceID(), ring.transform.position, ScoreManager.PointsPerRelay);
-                AudioManager.Instance?.PlayRelayActivated();
+                AudioManager.Instance?.PlayRelaySound(ring.RingOrder);
+                AudioManager.Instance?.PlayScoreRewardSound();
 
                 OnRingPassed?.Invoke(ring);
                 currentExpectedOrder++;
@@ -106,7 +107,7 @@ namespace NebulaRelay.World
                     OnAllRelaysSynchronized?.Invoke();
 
                     LevelManager.Instance?.SetHUDMessage("ALL RELAYS SYNCHRONIZED — EXIT UNLOCKED!", 5.0f, false);
-                    AudioManager.Instance?.PlayExitUnlocked();
+                    AudioManager.Instance?.PlayExitUnlockedSound();
                 }
             }
             // 2. Already completed relay (ignore gracefully, no duplicate scoring)
@@ -118,7 +119,7 @@ namespace NebulaRelay.World
             else
             {
                 ring.FlashWrongOrder();
-                AudioManager.Instance?.PlayMissionLocked();
+                AudioManager.Instance?.PlayExitLockedDenialSound();
                 OnWrongRingAttempted?.Invoke(ring, currentExpectedOrder);
                 LevelManager.Instance?.SetHUDMessage($"WRONG SEQUENCE! Synchronize Relay {currentExpectedOrder} first!", 2.5f, true);
             }

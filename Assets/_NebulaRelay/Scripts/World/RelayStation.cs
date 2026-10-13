@@ -151,7 +151,7 @@ namespace NebulaRelay.World
                     {
                         lastLockWarningTime = Time.time;
                         LevelManager.Instance?.SetHUDMessage($"MISSION LOCKED — {remaining} RELAYS REMAINING", 2.5f, true);
-                        AudioManager.Instance?.PlayMissionLocked();
+                        AudioManager.Instance?.PlayExitLockedDenialSound();
                     }
                     return; // EXIT LOCKED! Cannot complete!
                 }
@@ -163,7 +163,7 @@ namespace NebulaRelay.World
                     {
                         lastLockWarningTime = Time.time;
                         LevelManager.Instance?.SetHUDMessage("EXIT LOCKED — LAUNCH ENERGY CAPSULE INTO RECEIVER DISH!", 2.5f, true);
-                        AudioManager.Instance?.PlayMissionLocked();
+                        AudioManager.Instance?.PlayExitLockedDenialSound();
                     }
                     return;
                 }

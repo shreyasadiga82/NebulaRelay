@@ -111,6 +111,7 @@ namespace NebulaRelay.Core
         private void Start()
         {
             SetHUDMessage($"MISSION {levelNumber:D2}: {levelTitle.ToUpper()}", 3.0f, false);
+            AudioManager.Instance?.PlayMissionStartupSound();
         }
 
         private void Update()
@@ -154,12 +155,12 @@ namespace NebulaRelay.Core
             if (wholeSec <= 10 && !warning10sPlayed && wholeSec > 5)
             {
                 warning10sPlayed = true;
-                AudioManager.Instance?.PlayCountdownWarning(false);
+                AudioManager.Instance?.PlayCountdownWarningSound(false);
             }
             else if (wholeSec <= 5 && wholeSec >= 1 && wholeSec != lastSecondsWarningPlayed)
             {
                 lastSecondsWarningPlayed = wholeSec;
-                AudioManager.Instance?.PlayCountdownWarning(true);
+                AudioManager.Instance?.PlayCountdownWarningSound(true);
             }
         }
 
@@ -193,7 +194,7 @@ namespace NebulaRelay.Core
             {
                 int remaining = ringManager != null ? ringManager.RemainingRelays : 0;
                 SetHUDMessage($"MISSION LOCKED — {remaining} RELAYS REMAINING", 3.0f, true);
-                AudioManager.Instance?.PlayMissionLocked();
+                AudioManager.Instance?.PlayExitLockedDenialSound();
                 return;
             }
 
@@ -203,7 +204,7 @@ namespace NebulaRelay.Core
             int capsRemaining = launcher != null ? launcher.RemainingCapsules : 0;
             ScoreManager.Instance?.FinalizeMissionScore(RemainingTime, capsRemaining);
 
-            AudioManager.Instance?.PlayVictory();
+            AudioManager.Instance?.PlayMissionCompleteSound();
             SetHUDMessage($"SECTOR {levelNumber:D2} RESTORED! MISSION ACCOMPLISHED!", 10.0f, false);
 
             if (GameManager.Instance != null)
@@ -221,7 +222,14 @@ namespace NebulaRelay.Core
             State = LevelState.Failed;
             FailureReason = reason;
 
-            AudioManager.Instance?.PlayFailure();
+            if (reason != null && reason.Contains("CAPSULE"))
+            {
+                AudioManager.Instance?.PlayNoCapsulesSound();
+            }
+            else
+            {
+                AudioManager.Instance?.PlayMissionFailedSound();
+            }
             SetHUDMessage($"MISSION FAILED: {reason}\nPRESS [R] TO RETRY", 20.0f, true);
 
             OnLevelFailed?.Invoke(reason);
@@ -230,6 +238,7 @@ namespace NebulaRelay.Core
         public void RestartLevel()
         {
             Time.timeScale = 1f;
+            AudioManager.Instance?.PlayMissionResetSound();
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.RestartCurrentLevel();

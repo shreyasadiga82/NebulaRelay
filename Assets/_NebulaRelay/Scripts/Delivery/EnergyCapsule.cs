@@ -26,6 +26,7 @@ namespace NebulaRelay.Delivery
 
         // State
         private float spawnTime;
+        private float lastCollisionSoundTime = -1f;
         public bool IsDelivered { get; private set; }
         public Vector2 Velocity => rb != null ? rb.linearVelocity : Vector2.zero;
 
@@ -128,6 +129,41 @@ namespace NebulaRelay.Delivery
         {
             OnDestroyed?.Invoke(this);
             Destroy(gameObject);
+        }
+
+        private void OnCollisionEnter2D(Collision2D collision)
+        {
+            if (collision != null && collision.collider != null)
+            {
+                HandlePhysicalImpact(collision.collider, collision.relativeVelocity.magnitude);
+            }
+        }
+
+        private void OnTriggerEnter2D(Collider2D other)
+        {
+            if (other == null) return;
+
+            // Filter out non-impact gameplay triggers (rings, receivers, docking bays, player drone)
+            if (other.GetComponent<World.RingGate>() != null || other.GetComponentInParent<World.RingGate>() != null) return;
+            if (other.GetComponent<World.EnergyReceiver>() != null || other.GetComponentInParent<World.EnergyReceiver>() != null) return;
+            if (other.GetComponent<World.RelayStation>() != null || other.GetComponentInParent<World.RelayStation>() != null) return;
+            if (other.CompareTag("Player") || other.GetComponent<Player.DroneController>() != null || other.GetComponentInParent<Player.DroneController>() != null) return;
+
+            float speed = Velocity.magnitude;
+            HandlePhysicalImpact(other, speed);
+        }
+
+        private void HandlePhysicalImpact(Collider2D hitCollider, float speed)
+        {
+            if (IsDelivered) return;
+            if (Time.time - lastCollisionSoundTime < 0.15f) return;
+            if (speed < 0.6f) return;
+
+            lastCollisionSoundTime = Time.time;
+            bool isHeavy = hitCollider.GetComponent<World.AsteroidHazard>() != null 
+                        || hitCollider.GetComponentInParent<World.AsteroidHazard>() != null;
+
+            Effects.AudioManager.Instance?.PlayCollisionSound(speed, isHeavy);
         }
 
         private void EnsureVisibleSprite()

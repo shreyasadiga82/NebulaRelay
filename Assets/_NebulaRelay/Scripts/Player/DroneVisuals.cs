@@ -50,9 +50,7 @@ namespace NebulaRelay.Player
         private void Update()
         {
             // Detect if player is supplying thrust
-            float h = Input.GetAxisRaw("Horizontal");
-            float v = Input.GetAxisRaw("Vertical");
-            bool isThrusting = (h != 0f || v != 0f);
+            bool isThrusting = drone != null && drone.IsThrusting;
 
             // Interpolate thruster glow
             float targetGlow = isThrusting ? 1.0f : 0.2f;

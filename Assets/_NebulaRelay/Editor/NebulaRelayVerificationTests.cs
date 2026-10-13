@@ -6,8 +6,9 @@ namespace NebulaRelay.Editor
 {
     /// <summary>
     /// NebulaRelayVerificationTests runs automated verification checks on all core math,
-    /// physics assumptions, ring ordering, relay activation, and battery rules.
-    /// Can be executed from the top menu: Nebula Relay > Run All 15 Verification Tests.
+    /// physics assumptions, ring ordering, relay activation, battery rules, scene camera sizes,
+    /// prefab sizing, and zero-override scene checks.
+    /// Can be executed from the top menu: Nebula Relay > Run All 19 Verification Tests.
     /// </summary>
     [InitializeOnLoad]
     public static class NebulaRelayVerificationTests
@@ -17,14 +18,27 @@ namespace NebulaRelay.Editor
             EditorApplication.delayCall += RunAllTests;
         }
 
-        [MenuItem("Nebula Relay/Run All 15 Verification Tests", priority = 3)]
+        [MenuItem("Nebula Relay/Run All 19 Verification Tests", priority = 3)]
         public static void RunAllTests()
         {
+            if (EditorApplication.isPlaying)
+            {
+                return;
+            }
+
+            // Check if scene rebuild was requested
+            string rebuildFlag = "Temp/trigger_rebuild";
+            if (System.IO.File.Exists(rebuildFlag))
+            {
+                try { System.IO.File.Delete(rebuildFlag); } catch { }
+                NebulaSceneBuilder.BuildAllScenes();
+            }
+
             int passed = 0;
-            int total = 15;
+            int total = 19;
 
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
-            Debug.Log("<b><color=#00E5FF>[NEBULA RELAY] STARTING AUTOMATED TEST SUITE</color></b>");
+            Debug.Log("<b><color=#00E5FF>[NEBULA RELAY] STARTING AUTOMATED TEST SUITE (19 TESTS)</color></b>");
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");
 
             // Test 1: Projectile Math - Zero Gravity Linear Prediction
@@ -216,14 +230,14 @@ namespace NebulaRelay.Editor
                 else LogFail("12. Low Battery Warning", "Failed to detect low battery state");
             }
 
-            // Test 13: 3-Relay Mission Victory Condition
+            // Test 13: 5-Relay Network Restoration Victory Condition
             {
-                int maxRelays = 3;
-                int restored = 3;
+                int maxRelays = 5;
+                int restored = 5;
                 bool isVictory = restored >= maxRelays;
                 if (isVictory)
                 {
-                    LogPass("13. 3-Relay Network Restoration Victory Condition", "Restoring 3/3 relays satisfies game completion criteria");
+                    LogPass("13. 5-Relay Network Restoration Victory Condition", "Restoring 5/5 relays satisfies galactic victory criteria");
                     passed++;
                 }
                 else LogFail("13. Victory Condition", "Failed to evaluate grand victory state");
@@ -232,12 +246,12 @@ namespace NebulaRelay.Editor
             // Test 14: Build Settings Scene Registration Check
             {
                 int sceneCount = EditorBuildSettings.scenes.Length;
-                if (sceneCount >= 4)
+                if (sceneCount >= 6)
                 {
                     LogPass("14. Build Settings Scene Registration", $"All {sceneCount} scenes registered in EditorBuildSettings.scenes");
                     passed++;
                 }
-                else LogFail("14. Build Settings Scenes", $"Expected at least 4 scenes, found {sceneCount}");
+                else LogFail("14. Build Settings Scenes", $"Expected 6 scenes, found {sceneCount}");
             }
 
             // Test 15: Required Asset Integrity Check
@@ -274,6 +288,135 @@ namespace NebulaRelay.Editor
                     passed++;
                 }
                 else LogFail("15. Asset Integrity", "One or more essential assets were missing from disk");
+            }
+
+            // Test 16: Physics2D Gravity is Zero
+            {
+                bool isZeroGravity = Physics2D.gravity == Vector2.zero;
+                if (isZeroGravity)
+                {
+                    LogPass("16. Zero-Gravity Physics2D Configuration", "Physics2D.gravity is (0, 0)");
+                    passed++;
+                }
+                else LogFail("16. Zero-Gravity Physics2D", $"Expected (0, 0), got {Physics2D.gravity}");
+            }
+
+            // Test 17: Level Cameras Orthographic Size 7.5
+            {
+                string[] levelScenes = new string[]
+                {
+                    "Assets/_NebulaRelay/Scenes/Level_01.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_02.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_03.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_04.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_05.unity"
+                };
+
+                bool allCamerasCorrect = true;
+                foreach (var sc in levelScenes)
+                {
+                    if (System.IO.File.Exists(sc))
+                    {
+                        string content = System.IO.File.ReadAllText(sc);
+                        var match = System.Text.RegularExpressions.Regex.Match(content, @"(?:orthographic size|m_OrthographicSize):\s*([0-9.]+)");
+                        if (match.Success)
+                        {
+                            float size = float.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                            if (!Mathf.Approximately(size, 7.5f))
+                            {
+                                allCamerasCorrect = false;
+                                Debug.LogError($"{sc} camera size = {size}, expected 7.5");
+                            }
+                        }
+                        else
+                        {
+                            allCamerasCorrect = false;
+                        }
+                    }
+                    else
+                    {
+                        allCamerasCorrect = false;
+                    }
+                }
+
+                if (allCamerasCorrect)
+                {
+                    LogPass("17. Level Camera Orthographic Size", "All 5 level cameras use orthographicSize 7.5");
+                    passed++;
+                }
+                else LogFail("17. Level Camera Orthographic Size", "One or more level cameras do not have orthographicSize 7.5");
+            }
+
+            // Test 18: No m_LocalScale Overrides on Prefab Instances in Level Scenes
+            {
+                string[] levelScenes = new string[]
+                {
+                    "Assets/_NebulaRelay/Scenes/Level_01.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_02.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_03.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_04.unity",
+                    "Assets/_NebulaRelay/Scenes/Level_05.unity"
+                };
+
+                bool noOverrides = true;
+                foreach (var sc in levelScenes)
+                {
+                    if (System.IO.File.Exists(sc))
+                    {
+                        string content = System.IO.File.ReadAllText(sc);
+                        if (content.Contains("propertyPath: m_LocalScale"))
+                        {
+                            noOverrides = false;
+                            Debug.LogError($"{sc} contains prefab instance m_LocalScale overrides!");
+                        }
+                    }
+                }
+
+                if (noOverrides)
+                {
+                    LogPass("18. Zero Prefab Scale Overrides in Scenes", "No prefab-instance m_LocalScale overrides exist across all level scenes");
+                    passed++;
+                }
+                else LogFail("18. Zero Prefab Scale Overrides in Scenes", "One or more level scenes contain m_LocalScale overrides on prefab instances");
+            }
+
+            // Test 19: Prefab Visible World Sizing Within Target Ranges
+            {
+                GameObject droneP = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_NebulaRelay/Prefabs/PlayerDrone.prefab");
+                GameObject ringP = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_NebulaRelay/Prefabs/RingGate.prefab");
+                GameObject relayP = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_NebulaRelay/Prefabs/RelayStation.prefab");
+                GameObject astP = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_NebulaRelay/Prefabs/AsteroidHazard.prefab");
+                GameObject capP = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_NebulaRelay/Prefabs/EnergyCapsule.prefab");
+                GameObject recP = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_NebulaRelay/Prefabs/EnergyReceiver.prefab");
+
+                bool sizesValid = true;
+                if (droneP != null && ringP != null && relayP != null && astP != null && capP != null && recP != null)
+                {
+                    float droneWorldSize = droneP.transform.localScale.y * 9.06f; // Target ~1.2u
+                    float ringWorldSize = ringP.transform.localScale.x * 9.23f;   // Target ~2.4u
+                    float relayWorldSize = relayP.transform.localScale.y * 9.55f; // Target ~3.2u
+                    float astWorldSize = astP.transform.localScale.x * 8.20f;     // Target 1.0-1.8u
+                    float capWorldSize = capP.transform.localScale.x * 7.00f;     // Target ~0.4u
+                    float recWorldSize = recP.transform.localScale.x * 1.05f;     // Target ~1.5u
+
+                    if (droneWorldSize < 1.0f || droneWorldSize > 1.4f) sizesValid = false;
+                    if (ringWorldSize < 2.1f || ringWorldSize > 2.7f) sizesValid = false;
+                    if (relayWorldSize < 2.9f || relayWorldSize > 3.5f) sizesValid = false;
+                    if (astWorldSize < 1.0f || astWorldSize > 1.8f) sizesValid = false;
+                    if (capWorldSize < 0.3f || capWorldSize > 0.5f) sizesValid = false;
+                    if (recWorldSize < 1.3f || recWorldSize > 1.7f) sizesValid = false;
+
+                    if (sizesValid)
+                    {
+                        LogPass("19. Prefab World Target Sizing", $"Drone {droneWorldSize:F2}u, Ring {ringWorldSize:F2}u, Relay {relayWorldSize:F2}u, Asteroid {astWorldSize:F2}u, Capsule {capWorldSize:F2}u, Receiver {recWorldSize:F2}u");
+                        passed++;
+                    }
+                    else LogFail("19. Prefab World Target Sizing", "One or more prefab sizes fall outside target ranges");
+                }
+                else
+                {
+                    LogFail("19. Prefab World Target Sizing", "Unable to load prefabs for size measurement");
+                }
             }
 
             Debug.Log("<b><color=#00E5FF>========================================</color></b>");

@@ -27,7 +27,14 @@ namespace NebulaRelay.Effects
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                if (GetComponents<Component>().Length > 2)
+                {
+                    Destroy(this);
+                }
+                else
+                {
+                    Destroy(gameObject);
+                }
                 return;
             }
 

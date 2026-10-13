@@ -81,9 +81,9 @@ namespace NebulaRelay.World
 
                 if (layer.anchorToCamera)
                 {
-                    // Nebula & deep space: moves with camera by parallax factor + autonomous drifting
-                    float x = currentCamPos.x * layer.parallaxFactor + layer.initialPosition.x + layer.accumulatedDrift.x;
-                    float y = currentCamPos.y * layer.parallaxFactor + layer.initialPosition.y + layer.accumulatedDrift.y;
+                    // Nebula & deep space: anchored directly to camera position with subtle parallax offset + autonomous drift
+                    float x = currentCamPos.x + (currentCamPos.x * layer.parallaxFactor * 0.1f) + layer.accumulatedDrift.x;
+                    float y = currentCamPos.y + (currentCamPos.y * layer.parallaxFactor * 0.1f) + layer.accumulatedDrift.y;
                     layer.layerTransform.position = new Vector3(x, y, layer.initialPosition.z);
                 }
                 else

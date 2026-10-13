@@ -49,10 +49,30 @@ namespace NebulaRelay.Delivery
 
         private void Update()
         {
-            // Auto cleanup expired capsules that drifted out of bounds
-            if (!IsDelivered && Time.time - spawnTime >= lifetime)
+            // Auto cleanup expired capsules that drifted out of bounds or exceeded lifetime
+            if (!IsDelivered)
             {
-                Expire();
+                if (Time.time - spawnTime >= lifetime)
+                {
+                    Expire();
+                    return;
+                }
+
+                // Despawn capsules that leave flight corridor bounds
+                float minX = -45f, maxX = 45f, minY = -7.5f, maxY = 7.5f;
+                if (NebulaRelay.Core.LevelManager.Instance != null)
+                {
+                    minX = NebulaRelay.Core.LevelManager.Instance.FlightMinX;
+                    maxX = NebulaRelay.Core.LevelManager.Instance.FlightMaxX;
+                    minY = NebulaRelay.Core.LevelManager.Instance.FlightMinY;
+                    maxY = NebulaRelay.Core.LevelManager.Instance.FlightMaxY;
+                }
+
+                Vector3 pos = transform.position;
+                if (pos.x < minX || pos.x > maxX || pos.y < minY || pos.y > maxY)
+                {
+                    Expire();
+                }
             }
         }
 

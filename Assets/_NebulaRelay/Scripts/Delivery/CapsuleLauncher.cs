@@ -1,7 +1,5 @@
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
-#endif
 using NebulaRelay.Player;
 
 namespace NebulaRelay.Delivery
@@ -100,19 +98,10 @@ namespace NebulaRelay.Delivery
 
             Vector3 mouseScreenPos = Vector3.zero;
 
-#if ENABLE_INPUT_SYSTEM
             if (Mouse.current != null)
             {
                 mouseScreenPos = Mouse.current.position.ReadValue();
             }
-#endif
-
-#if ENABLE_LEGACY_INPUT_MANAGER
-            if (mouseScreenPos == Vector3.zero)
-            {
-                mouseScreenPos = Input.mousePosition;
-            }
-#endif
 
             Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(mouseScreenPos);
             mouseWorldPos.z = 0f;
@@ -134,7 +123,6 @@ namespace NebulaRelay.Delivery
             bool fireRequested = false;
 
             // Check Keyboard key (Space by default)
-#if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
                 if (fireKey == KeyCode.Space && Keyboard.current.spaceKey.wasPressedThisFrame) fireRequested = true;
@@ -144,15 +132,6 @@ namespace NebulaRelay.Delivery
             {
                 fireRequested = true;
             }
-#endif
-
-#if ENABLE_LEGACY_INPUT_MANAGER
-            if (!fireRequested)
-            {
-                if (Input.GetKeyDown(fireKey)) fireRequested = true;
-                if (allowMouseClickFire && Input.GetMouseButtonDown(0)) fireRequested = true;
-            }
-#endif
 
             if (fireRequested)
             {

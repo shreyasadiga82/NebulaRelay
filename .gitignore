@@ -8,6 +8,11 @@
 /[Uu]ser[Ss]ettings/
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
+.plastic/
+ignore.conf
+Library/
+Temp/
+Builds/
 
 # Asset meta files for folders without user content
 !/[Aa]ssets/**/*.meta

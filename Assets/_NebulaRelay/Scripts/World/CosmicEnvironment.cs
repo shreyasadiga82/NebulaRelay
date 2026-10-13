@@ -27,8 +27,9 @@ namespace NebulaRelay.World
 
         public void SetupEnvironment()
         {
-            // Camera background color to deep space navy black (#050816)
+            // Camera background color to deep space navy black (#050816) without failing if Camera.main is null at edit-time
             Camera cam = Camera.main;
+            if (cam == null) cam = FindFirstObjectByType<Camera>();
             if (cam != null)
             {
                 cam.backgroundColor = new Color(0.02f, 0.031f, 0.086f, 1f); // #050816
@@ -53,10 +54,10 @@ namespace NebulaRelay.World
                 sr.sortingOrder = -80;
                 sr.color = new Color(1f, 1f, 1f, 0.95f);
 
-                // Scale to comfortably cover camera view frustum across wide flight corridors
-                nebulaObj.transform.localScale = new Vector3(5.5f, 4.5f, 1f);
+                // Scale to comfortably cover camera view frustum across wide flight corridors (6.0 x 5.0 = 61.4 x 51.2 units)
+                nebulaObj.transform.localScale = new Vector3(6.0f, 5.0f, 1f);
 
-                // Drift continuously at (-0.10, -0.04) u/s, anchored to camera with 0.04 parallax
+                // Drift continuously at (-0.10, -0.04) u/s, anchored to camera
                 parallax.AddLayer(nebulaObj.transform, 0.04f, new Vector2(-0.10f, -0.04f), true, "Nebula");
             }
 
@@ -67,12 +68,13 @@ namespace NebulaRelay.World
                 planetObj.transform.SetParent(transform, false);
                 Vector3 planetPos = (sectorIndex == 1) ? new Vector3(-14f, -4f, 0f) : new Vector3(18f, 6f, 0f);
                 planetObj.transform.position = planetPos;
-                planetObj.transform.localScale = new Vector3(0.9f, 0.9f, 1f);
+                // Calibrated planet scale ~0.45u to sit distinctly in the background
+                planetObj.transform.localScale = new Vector3(0.45f, 0.45f, 1f);
 
                 SpriteRenderer sr = planetObj.AddComponent<SpriteRenderer>();
                 sr.sprite = planetSprite;
                 sr.sortingOrder = -60;
-                sr.color = (sectorIndex == 1) ? new Color(0.85f, 0.95f, 1f, 0.9f) : new Color(1f, 0.85f, 0.5f, 0.85f);
+                sr.color = (sectorIndex == 1) ? new Color(0.75f, 0.85f, 0.95f, 0.75f) : new Color(0.9f, 0.75f, 0.45f, 0.75f);
 
                 // Slow axial rotation
                 SlowSpinner spinner = planetObj.AddComponent<SlowSpinner>();
@@ -87,7 +89,10 @@ namespace NebulaRelay.World
                 GameObject clusterObj = new GameObject("Layer_DistantAsteroids");
                 clusterObj.transform.SetParent(transform, false);
 
-                int count = 10;
+                // Seed Random state deterministically for repeatable scene generation
+                Random.InitState(1000 + sectorIndex * 37);
+
+                int count = 12;
                 for (int i = 0; i < count; i++)
                 {
                     GameObject ast = new GameObject($"BgAsteroid_{i}");
@@ -97,13 +102,15 @@ namespace NebulaRelay.World
                     float y = Random.Range(-12f, 12f);
                     ast.transform.localPosition = new Vector3(x, y, 0f);
 
-                    float s = Random.Range(0.18f, 0.38f);
+                    // Calibrated background asteroid scale 0.05 - 0.12 (clearly smaller than gameplay 1.0-1.8u)
+                    float s = Random.Range(0.05f, 0.12f);
                     ast.transform.localScale = new Vector3(s, s, 1f);
 
                     SpriteRenderer sr = ast.AddComponent<SpriteRenderer>();
                     sr.sprite = asteroidSprite;
                     sr.sortingOrder = -40;
-                    sr.color = new Color(0.35f, 0.42f, 0.62f, 0.65f);
+                    // Dim, blue-shifted background shading
+                    sr.color = new Color(0.25f, 0.32f, 0.48f, 0.45f);
 
                     // Continuous rotation for live feeling
                     SlowSpinner spinner = ast.AddComponent<SlowSpinner>();

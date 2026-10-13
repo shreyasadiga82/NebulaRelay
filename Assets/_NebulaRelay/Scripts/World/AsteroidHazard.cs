@@ -28,16 +28,31 @@ namespace NebulaRelay.World
         [Tooltip("Patrol oscillation cycle speed.")]
         [SerializeField] private float patrolSpeed = 1.0f;
 
+        [Tooltip("Per-instance scale multiplier applied to the base prefab scale (Default: 1.0, range 0.8 to 1.3).")]
+        [Range(0.8f, 1.3f)]
+        [SerializeField] private float scaleMultiplier = 1.0f;
+
         [Header("Visuals")]
         [SerializeField] private SpriteRenderer spriteRenderer;
 
         private Vector3 startPosition;
         private Collider2D col;
 
+        public float ScaleMultiplier
+        {
+            get => scaleMultiplier;
+            set => scaleMultiplier = Mathf.Clamp(value, 0.8f, 1.3f);
+        }
+
         private void Awake()
         {
             col = GetComponent<Collider2D>();
             startPosition = transform.position;
+
+            if (Mathf.Abs(scaleMultiplier - 1.0f) > 0.001f)
+            {
+                transform.localScale = transform.localScale * scaleMultiplier;
+            }
 
             if (spriteRenderer == null)
             {

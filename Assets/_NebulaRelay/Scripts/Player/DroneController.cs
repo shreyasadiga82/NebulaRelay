@@ -1,7 +1,5 @@
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
-#endif
 
 namespace NebulaRelay.Player
 {
@@ -30,6 +28,13 @@ namespace NebulaRelay.Player
         [Tooltip("Angular rotation speed when turning towards heading.")]
         [SerializeField] private float rotationSpeed = 10.0f;
 
+        [Header("Flight Corridor Boundary")]
+        [Tooltip("Enable corridor boundary clamping.")]
+        [SerializeField] private bool clampToFlightCorridor = true;
+        [SerializeField] private Vector2 minCorridorBounds = new Vector2(-20f, -6.5f);
+        [SerializeField] private Vector2 maxCorridorBounds = new Vector2(20f, 6.5f);
+        private float lastBoundaryWarningTime = -10f;
+
         [Header("Debug & Gizmos")]
         [Tooltip("Draw velocity and thrust vectors in Scene view.")]
         [SerializeField] private bool drawGizmoVectors = true;
@@ -49,6 +54,14 @@ namespace NebulaRelay.Player
         public float LinearDrag => linearDrag;
         public bool IsThrusting => inputDirection.sqrMagnitude > 0.001f;
         public Vector2 ThrustDirection => inputDirection;
+        public Vector2 MinCorridorBounds => minCorridorBounds;
+        public Vector2 MaxCorridorBounds => maxCorridorBounds;
+
+        public void SetFlightCorridor(float minX, float maxX, float maxY = 6.5f)
+        {
+            minCorridorBounds = new Vector2(minX, -maxY);
+            maxCorridorBounds = new Vector2(maxX, maxY);
+        }
 
         private void Awake()
         {
@@ -98,17 +111,16 @@ namespace NebulaRelay.Player
         {
             ApplyThrustPhysics();
             ApplyOrientationPhysics();
+            ApplyFlightBoundaryPhysics();
         }
 
         /// <summary>
-        /// Captures player input from WASD / Arrow keys.
-        /// Supports both New Input System and Legacy Input Manager seamlessly.
+        /// Captures player input from WASD / Arrow keys using New Input System.
         /// </summary>
         private void CaptureInput()
         {
             Vector2 rawInput = Vector2.zero;
 
-#if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
                 var kb = Keyboard.current;
@@ -117,15 +129,6 @@ namespace NebulaRelay.Player
                 if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) rawInput.x -= 1f;
                 if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) rawInput.x += 1f;
             }
-#endif
-
-#if ENABLE_LEGACY_INPUT_MANAGER
-            if (rawInput == Vector2.zero)
-            {
-                rawInput.x = Input.GetAxisRaw("Horizontal");
-                rawInput.y = Input.GetAxisRaw("Vertical");
-            }
-#endif
 
             // Normalize so diagonal movement does not accelerate faster
             inputDirection = rawInput.sqrMagnitude > 1f ? rawInput.normalized : rawInput;
@@ -150,6 +153,71 @@ namespace NebulaRelay.Player
             if (rb.linearVelocity.sqrMagnitude > maxSpeed * maxSpeed)
             {
                 rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
+            }
+        }
+
+        /// <summary>
+        /// Soft-clamps the drone within the sector flight corridor, zeroes outward velocity on contact,
+        /// and flashes the boundary HUD alert.
+        /// </summary>
+        private void ApplyFlightBoundaryPhysics()
+        {
+            if (!clampToFlightCorridor || rb == null) return;
+
+            Vector2 pos = rb.position;
+            Vector2 vel = rb.linearVelocity;
+            bool clamped = false;
+
+            float minX = minCorridorBounds.x;
+            float maxX = maxCorridorBounds.x;
+            float minY = minCorridorBounds.y;
+            float maxY = maxCorridorBounds.y;
+
+            if (NebulaRelay.Core.LevelManager.Instance != null)
+            {
+                minX = NebulaRelay.Core.LevelManager.Instance.FlightMinX;
+                maxX = NebulaRelay.Core.LevelManager.Instance.FlightMaxX;
+                minY = NebulaRelay.Core.LevelManager.Instance.FlightMinY;
+                maxY = NebulaRelay.Core.LevelManager.Instance.FlightMaxY;
+            }
+
+            if (pos.x < minX)
+            {
+                pos.x = minX;
+                if (vel.x < 0f) vel.x = 0f;
+                clamped = true;
+            }
+            else if (pos.x > maxX)
+            {
+                pos.x = maxX;
+                if (vel.x > 0f) vel.x = 0f;
+                clamped = true;
+            }
+
+            if (pos.y < minY)
+            {
+                pos.y = minY;
+                if (vel.y < 0f) vel.y = 0f;
+                clamped = true;
+            }
+            else if (pos.y > maxY)
+            {
+                pos.y = maxY;
+                if (vel.y > 0f) vel.y = 0f;
+                clamped = true;
+            }
+
+            if (clamped)
+            {
+                rb.position = pos;
+                rb.linearVelocity = vel;
+
+                if (Time.time - lastBoundaryWarningTime > 1.2f)
+                {
+                    lastBoundaryWarningTime = Time.time;
+                    NebulaRelay.Core.LevelManager.Instance?.SetHUDMessage("WARNING: FLIGHT CORRIDOR BOUNDARY!", 1.5f, true);
+                    NebulaRelay.Effects.AudioManager.Instance?.PlayWarning();
+                }
             }
         }
 

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using NebulaRelay.Player;
 using NebulaRelay.World;
@@ -32,6 +33,29 @@ namespace NebulaRelay.Core
         [SerializeField] private BatteryManager battery;
         [SerializeField] private RingManager ringManager;
         [SerializeField] private RelayStation relayStation;
+
+        [Header("Flight Corridor Boundaries")]
+        [Tooltip("Corridor start X coordinate.")]
+        [SerializeField] private float minCorridorX = -18f;
+        [Tooltip("Corridor end X coordinate (Relay station location).")]
+        [SerializeField] private float maxCorridorX = 18f;
+        [Tooltip("Safety margin beyond start/end.")]
+        [SerializeField] private float marginX = 2.0f;
+        [Tooltip("Half-height of corridor: orthoSize - 1.")]
+        [SerializeField] private float corridorMarginY = 6.5f;
+
+        public float FlightMinX => minCorridorX - marginX;
+        public float FlightMaxX => maxCorridorX + marginX;
+        public float FlightMinY => -corridorMarginY;
+        public float FlightMaxY => corridorMarginY;
+
+        public void SetCorridorBounds(float minX, float maxX, float margin = 2.0f, float maxY = 6.5f)
+        {
+            minCorridorX = minX;
+            maxCorridorX = maxX;
+            marginX = margin;
+            corridorMarginY = maxY;
+        }
 
         // Level State
         public LevelState State { get; private set; } = LevelState.InFlight;
@@ -75,16 +99,20 @@ namespace NebulaRelay.Core
 
         private void Update()
         {
-            // Quick restart key (R)
-            if (Input.GetKeyDown(KeyCode.R))
+            var kb = Keyboard.current;
+            if (kb != null)
             {
-                RestartLevel();
-            }
+                // Quick restart key (R)
+                if (kb.rKey.wasPressedThisFrame)
+                {
+                    RestartLevel();
+                }
 
-            // Quick advance key on completion (Space or Return)
-            if (State == LevelState.Completed && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)))
-            {
-                AdvanceToNextLevel();
+                // Quick advance key on completion (Space or Return)
+                if (State == LevelState.Completed && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame))
+                {
+                    AdvanceToNextLevel();
+                }
             }
         }
 

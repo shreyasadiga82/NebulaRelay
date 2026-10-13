@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.38, y: 0.38, z: 1}
+  m_LocalScale: {x: 0.335, y: 0.335, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4000000000000011}
@@ -141,7 +141,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   relayIndex: 1
   maxSafeSpeed: 1.5
-  activationZoneRadius: 2.5
+  activationZoneRadius: 2.2
   receiver: {fileID: 4000000000000014}
   stationRenderer: {fileID: 4000000000000002}
   beaconRenderer: {fileID: 0}

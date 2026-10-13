@@ -6,8 +6,8 @@
 ![Render Pipeline](https://img.shields.io/badge/Render%20Pipeline-Universal%202D%20(URP)-blueviolet.svg?style=for-the-badge&logo=render&logoColor=white)
 ![Language](https://img.shields.io/badge/Language-C%23%209.0%2B-239120.svg?style=for-the-badge&logo=c-sharp&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white)
-![Build Status](https://img.shields.io/badge/Build%20Status-Complete%20%26%20Verified-00E5FF.svg?style=for-the-badge&logo=checkmarx&logoColor=white)
-![Automated Tests](https://img.shields.io/badge/Tests-15%2F15%20Passing-brightgreen.svg?style=for-the-badge&logo=pytest&logoColor=white)
+![Input System](https://img.shields.io/badge/Input-Unity%20Input%20System%20(New)-orange.svg?style=for-the-badge&logo=unity&logoColor=white)
+![Automated Tests](https://img.shields.io/badge/Tests-19%2F19%20Passing-brightgreen.svg?style=for-the-badge&logo=pytest&logoColor=white)
 
 <br/>
 
@@ -40,7 +40,7 @@ In the vacuum of space, **Newtonian inertia rules supreme**: every burst of thru
 
 ## 🎮 Flight Controls & Pilot Manual
 
-The courier drone is controlled via keyboard thrust and mouse trajectory targeting:
+The courier drone is controlled via keyboard thrust and mouse trajectory targeting using the Unity New Input System:
 
 | Control | Key / Input | Action & Maneuver Notes |
 | :--- | :---: | :--- |
@@ -60,45 +60,57 @@ The courier drone is controlled via keyboard thrust and mouse trajectory targeti
 
 ## 🌌 Core Gameplay Mechanics
 
-### 1. Zero-G Inertial Flight Dynamics
-Governed by [DroneController](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/Player/DroneController.cs) using a pure 2D Newtonian physics simulation:
+### 1. Calibrated World Scaling & Zero-Override Architecture
+All objects are calibrated to exact on-screen world dimensions in their prefabs (no scene overrides):
+* **Player Drone**: `~1.20u` length (hull diameter ~1.06u, local scale 0.132)
+* **Ring Gate**: `~2.40u` outer diameter (comfortable passage clearance for the drone, local scale 0.26)
+* **Relay Station Spire**: `~3.20u` height (activation zone radius 2.2u, local scale 0.335)
+* **Gameplay Asteroids**: `1.0–1.8u` diameter (base prefab 1.39u at scale 0.17, varied via runtime multiplier 0.8–1.3)
+* **Energy Capsule**: `~0.40u` diameter (local scale 0.057)
+* **Energy Receiver**: `~1.50u` diameter (local scale 1.43)
+* **Orthographic Camera**: Size `7.5` across all level scenes (`8.0` in Main Menu), guaranteeing full visibility of corridors without void edges.
+
+### 2. Zero-G Inertial Flight Dynamics & Flight Corridor Soft-Clamping
+Governed by [DroneController](Assets/_NebulaRelay/Scripts/Player/DroneController.cs) using a pure 2D Newtonian physics simulation:
 * **Thrust Rating**: `6.0 u/s²` with smooth directional interpolation towards movement vector.
 * **Top Speed Cap**: Strictly capped at `8.0 u/s` to maintain navigational precision.
 * **Inertial Coasting**: Subtle drag coefficient ($0.2$) gives the authentic feel of deep-space drift while retaining crisp micro-adjustments.
-* **Dynamic Visuals**: Animated thruster trail, rotation smoothing, and kinetic hull feedback handled by [DroneVisuals](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/Player/DroneVisuals.cs).
+* **Flight Corridor Soft-Clamping**: The drone is soft-clamped inside the level corridor ($X \in [\text{MinX}, \text{MaxX}]$, $Y \in [-6.5, +6.5]$). When contacting boundary limits, outward velocity is cleanly zeroed and a warning alert is flashed on the HUD.
+* **Dynamic Visuals**: Animated thruster trail, rotation smoothing, and kinetic hull feedback handled by [DroneVisuals](Assets/_NebulaRelay/Scripts/Player/DroneVisuals.cs).
 
-### 2. Ballistic Trajectory & Energy Capsule Launcher
-Implemented across [CapsuleLauncher](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/Delivery/CapsuleLauncher.cs), [EnergyCapsule](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/Delivery/EnergyCapsule.cs), and [TrajectoryPreview](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/Delivery/TrajectoryPreview.cs):
+### 3. Ballistic Trajectory & Energy Capsule Launcher
+Implemented across [CapsuleLauncher](Assets/_NebulaRelay/Scripts/Delivery/CapsuleLauncher.cs), [EnergyCapsule](Assets/_NebulaRelay/Scripts/Delivery/EnergyCapsule.cs), and [TrajectoryPreview](Assets/_NebulaRelay/Scripts/Delivery/TrajectoryPreview.cs):
 * **Predictive LineRenderer**: Casts 30 analytical Newtonian sample points showing the exact path the capsule will travel before firing.
 * **Single-Slot Protocol**: Only one simultaneous capsule may exist in flight at a time (`0.5s` cooldown), requiring deliberate targeting.
-* **Zero-G Projectile Mechanics**: Projectiles travel at `12.0 u/s` with true zero-gravity ballistics and automatic boundary despawning.
+* **Zero-G Projectile Mechanics**: Projectiles travel at `12.0 u/s` with true zero-gravity ballistics and automatic boundary despawning outside flight limits.
 
-### 3. Sequential Holographic Checkpoint Gates
-Managed by [RingManager](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/World/RingManager.cs) and [RingGate](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/World/RingGate.cs):
+### 4. Sequential Holographic Checkpoint Gates
+Managed by [RingManager](Assets/_NebulaRelay/Scripts/World/RingManager.cs) and [RingGate](Assets/_NebulaRelay/Scripts/World/RingGate.cs):
 * **Strict Sequential Logic**: Checkpoints must be threaded in order (`Gate 1 → Gate 2 → Gate 3...`).
+* **Passage Clearance**: Calibrated gate openings allow the drone to glide through comfortably.
 * **Audio-Visual Feedback**:
   * *Active Gate*: Pulsing cyan hologram waiting for passage.
   * *Cleared Gate*: Transitions to neon emerald with harmonic validation tone.
   * *Wrong-Order Penalty*: Flashes warning crimson with rejection tone; progression is blocked until previous gates are cleared.
 
-### 4. Dual-Phase Relay Station Activation
-Orchestrated by [RelayStation](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/World/RelayStation.cs), [RelayStationVisuals](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/World/RelayStationVisuals.cs), and [EnergyReceiver](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/World/EnergyReceiver.cs):
+### 5. Dual-Phase Relay Station Activation
+Orchestrated by [RelayStation](Assets/_NebulaRelay/Scripts/World/RelayStation.cs), [RelayStationVisuals](Assets/_NebulaRelay/Scripts/World/RelayStationVisuals.cs), and [EnergyReceiver](Assets/_NebulaRelay/Scripts/World/EnergyReceiver.cs):
 * **Phase 1: Energy Delivery**: Fire the energy capsule into the stationary receiver dish. The receiver latches once, transitions to energized green, and primes the relay tower.
 * **Phase 2: Safe-Speed Docking**: Navigate the drone into the relay docking zone. 
 * **Safe Velocity Interlock**: Docking speed must not exceed **$1.5\text{ u/s}$**.
   * If velocity exceeds $1.5\text{ u/s}$, the docking system repels the drone with an audible alert and an on-screen **"SLOW DOWN!"** indicator.
   * Approaching at safe speed activates the relay tower, ignites the master beacon beam, and completes the sector.
 
-### 5. Power & Shield Management
-Handled by [BatteryManager](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/Core/BatteryManager.cs):
+### 6. Power & Shield Management
+Handled by [BatteryManager](Assets/_NebulaRelay/Scripts/Core/BatteryManager.cs):
 * **Max Capacity**: 100% capacity displayed via dynamic HUD gauge.
 * **Thruster Consumption**: Depletes at `0.8% / sec` under continuous propulsion.
 * **Launch Cost**: Expends `4.0%` energy per capsule fire.
-* **Kinetic Damage**: Colliding with [AsteroidHazard](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/World/AsteroidHazard.cs) obstacles deals `-15%` immediate shield loss with physical recoil.
+* **Kinetic Damage**: Colliding with [AsteroidHazard](Assets/_NebulaRelay/Scripts/World/AsteroidHazard.cs) obstacles deals `-15%` immediate shield loss with physical recoil.
 * **Critical Warning & Depletion**: Flashes red alert below `20%`; total depletion (`0%`) disables ship systems and triggers mission failure.
 
-### 6. Procedural Audio Synthesizer
-Powered by [AudioManager](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/Effects/AudioManager.cs):
+### 7. Procedural Audio Synthesizer
+Powered by [AudioManager](Assets/_NebulaRelay/Scripts/Effects/AudioManager.cs):
 * **Zero External Dependencies**: Generates pure procedural audio waveforms directly into memory using math routines.
 * **Dynamic Waveforms**:
   * *Thruster Propulsion*: Modulated low-frequency noise rumble.
@@ -112,7 +124,7 @@ Powered by [AudioManager](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_Nebu
 
 ## 🗺️ Campaign Sectors
 
-The campaign spans 5 progressively demanding sectors, selectable from the [MainMenuController](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/UI/MainMenuController.cs) Mission Briefing terminal:
+The campaign spans 5 progressively demanding sectors, selectable from the [MainMenuController](Assets/_NebulaRelay/Scripts/UI/MainMenuController.cs) Mission Briefing terminal:
 
 ```
 [MAIN MENU]
@@ -137,7 +149,7 @@ The campaign spans 5 progressively demanding sectors, selectable from the [MainM
 ## 📐 Physics & Mathematical Foundations
 
 ### 1. Newtonian Projectile Trajectory
-The trajectory preview and capsule ballistics share identical Newtonian mechanics modeled in [ProjectileMath](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/Delivery/TrajectoryPreview.cs):
+The trajectory preview and capsule ballistics share identical Newtonian mechanics modeled in [ProjectileMath](Assets/_NebulaRelay/Scripts/Delivery/TrajectoryPreview.cs):
 
 $$p(t) = p_0 + v_0 t + \frac{1}{2} a t^2$$
 
@@ -168,7 +180,7 @@ If $\|v_{\text{drone}}\| > 1.5\text{ u/s}$, docking fails and an elastic impulse
 
 ## 🧪 Automated Verification Suite
 
-Nebula Relay includes a 15-test automated verification suite built into [NebulaRelayVerificationTests](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Editor/NebulaRelayVerificationTests.cs). All 15 tests pass on every compilation and scene build:
+Nebula Relay includes a comprehensive 19-test automated verification suite built into [NebulaRelayVerificationTests](Assets/_NebulaRelay/Editor/NebulaRelayVerificationTests.cs). All 19 tests pass on every compilation and scene build:
 
 ```
 ============================================================
@@ -189,13 +201,17 @@ Nebula Relay includes a 15-test automated verification suite built into [NebulaR
 [PASS]  13. Victory Condition Verification (Restoring all sector relays triggers galactic victory)
 [PASS]  14. Build Settings Registration (All 6 scenes registered in EditorBuildSettings)
 [PASS]  15. Asset Integrity Check (All 6 core prefabs and 6 scene files verified on disk)
+[PASS]  16. Zero-Gravity Physics2D Configuration (Physics2D.gravity is (0, 0))
+[PASS]  17. Level Camera Orthographic Size (All 5 level cameras use orthographicSize 7.5)
+[PASS]  18. Zero Prefab Scale Overrides in Scenes (No propertyPath: m_LocalScale overrides in level scenes)
+[PASS]  19. Prefab World Target Sizing (Drone 1.20u, Ring 2.40u, Relay 3.20u, Asteroid 1.39u, Capsule 0.40u, Receiver 1.50u)
 ------------------------------------------------------------
-RESULT: 15 / 15 TESTS PASSED (100% COVERAGE)
+RESULT: 19 / 19 TESTS PASSED (100% COVERAGE)
 ============================================================
 ```
 
 To execute the test suite in Unity:
-> Top Menu Bar $\rightarrow$ **Nebula Relay** $\rightarrow$ **Run All 15 Verification Tests**
+> Top Menu Bar $\rightarrow$ **Nebula Relay** $\rightarrow$ **Run All 19 Verification Tests**
 
 ---
 
@@ -203,119 +219,101 @@ To execute the test suite in Unity:
 
 ```
 NebulaRelay/
-├── Builds/
-│   └── Windows/
-│       ├── NebulaRelay.exe               # Compiled Standalone Windows x64 binary
-│       ├── UnityPlayer.dll               # Unity 6 runtime engine library
-│       └── NebulaRelay_Data/             # Packaged sector data & asset bundles
-│
-└── Assets/_NebulaRelay/
-    ├── Art/                              # 4K Handcrafted Space Textures
-    │   ├── Drone_Courier.png             # Player delta spacecraft
-    │   ├── RelayStation_Tower.png        # Orbital communications spire
-    │   ├── RingGate_Neon.png             # Holographic checkpoint gate
-    │   ├── EnergyCapsule_Core.png        # Magenta plasma projectile
-    │   ├── Asteroid_Detailed.png         # Cratered deep-space hazard
-    │   ├── Planet_BlueOcean.png          # Majestic terrestrial backdrop
-    │   ├── MainMenu_CosmicBG.png         # Title screen panoramic vista
-    │   ├── Nebula_FirstSignal.png        # Sector 1 cyan nebula skybox
-    │   ├── Nebula_DebrisField.png        # Sector 2 magenta nebula skybox
-    │   ├── Nebula_LastTransmission.png   # Sector 3 electric azure skybox
-    │   ├── Nebula_GravityWell.png        # Sector 4 golden vortex skybox
-    │   └── Nebula_OmegaCore.png          # Sector 5 deep-violet nexus skybox
-    │
-    ├── Prefabs/                          # Calibrated Game Objects
-    │   ├── PlayerDrone.prefab            # Courier drone with physics & launchers
-    │   ├── EnergyCapsule.prefab          # Zero-g plasma projectile with triggers
-    │   ├── RingGate.prefab               # Holographic checkpoint ring
-    │   ├── EnergyReceiver.prefab         # Stationary energy collection dish
-    │   ├── RelayStation.prefab           # Dual-phase orbital transmission tower
-    │   └── AsteroidHazard.prefab         # Kinematic/patrolling kinetic obstacle
-    │
-    ├── Scenes/                           # 6 Registered Game Scenes
-    │   ├── MainMenu.unity                # Scene 0: Sector selector & options
-    │   ├── Level_01.unity                # Scene 1: Sector 1 (First Signal)
-    │   ├── Level_02.unity                # Scene 2: Sector 2 (The Debris Field)
-    │   ├── Level_03.unity                # Scene 3: Sector 3 (The Ion Storm)
-    │   ├── Level_04.unity                # Scene 4: Sector 4 (The Gravity Well)
-    │   └── Level_05.unity                # Scene 5: Sector 5 (The Omega Transmission)
-    │
-    ├── Scripts/
-    │   ├── Core/
-    │   │   ├── GameManager.cs            # Persistent singleton & relay tracker
-    │   │   ├── LevelManager.cs           # Sector lifecycle, objectives & state
-    │   │   └── BatteryManager.cs         # Shield capacity & power consumption
-    │   ├── Player/
-    │   │   ├── DroneController.cs        # 2D Newtonian flight & speed clamps
-    │   │   └── DroneVisuals.cs           # Thruster glow, banking & hit flashes
-    │   ├── Delivery/
-    │   │   ├── CapsuleLauncher.cs        # Rate-limited plasma core launcher
-    │   │   ├── EnergyCapsule.cs          # Physics projectile & impact triggers
-    │   │   └── TrajectoryPreview.cs      # Exact 30-sample quadratic line renderer
-    │   ├── World/
-    │   │   ├── RingGate.cs               # Sequential checkpoint state machine
-    │   │   ├── RingManager.cs            # Sector ring coordinator & UI banners
-    │   │   ├── EnergyReceiver.cs         # Single-latch capsule detection dish
-    │   │   ├── RelayStation.cs           # Safe-speed velocity gate & docking
-    │   │   ├── RelayStationVisuals.cs    # Spire energy charging & beacon beam
-    │   │   ├── AsteroidHazard.cs         # Collision damage, rotation & patrols
-    │   │   ├── CameraFollow.cs           # Smooth corridor damping & tracking
-    │   │   ├── ParallaxBackground.cs     # Continuous cosmic parallax drift
-    │   │   ├── CosmicEnvironment.cs      # Autonomous rotating celestial objects
-    │   │   └── CosmicDustParticles.cs    # Procedural floating star mote field
-    │   ├── UI/
-    │   │   ├── HUDController.cs          # Real-time speedometer, battery & radar
-    │   │   └── MainMenuController.cs     # Sci-fi mission selector & audio settings
-    │   └── Effects/
-    │       └── AudioManager.cs           # Zero-dependency procedural sound generator
-    │
-    └── Editor/
-        ├── NebulaSceneBuilder.cs         # 1-Click scene generator & build pipeline
-        └── NebulaRelayVerificationTests.cs # 15-check automated verification suite
+├── Assets/_NebulaRelay/
+│   ├── Art/                              # 1024px High-Resolution Space Sprites
+│   │   ├── Drone_Courier.png             # Player delta spacecraft
+│   │   ├── RelayStation_Tower.png        # Orbital communications spire
+│   │   ├── RingGate_Neon.png             # Holographic checkpoint gate
+│   │   ├── EnergyCapsule_Core.png        # Magenta plasma projectile
+│   │   ├── Asteroid_Detailed.png         # Cratered deep-space hazard
+│   │   ├── Planet_BlueOcean.png          # Majestic terrestrial backdrop
+│   │   ├── MainMenu_CosmicBG.png         # Title screen panoramic vista
+│   │   ├── Nebula_FirstSignal.png        # Sector 1 cyan nebula skybox
+│   │   ├── Nebula_DebrisField.png        # Sector 2 magenta nebula skybox
+│   │   ├── Nebula_LastTransmission.png   # Sector 3 electric azure skybox
+│   │   ├── Nebula_GravityWell.png        # Sector 4 golden vortex skybox
+│   │   └── Nebula_OmegaCore.png          # Sector 5 deep-violet nexus skybox
+│   │
+│   ├── Prefabs/                          # Calibrated Game Objects
+│   │   ├── PlayerDrone.prefab            # Courier drone (~1.2u) with physics & launchers
+│   │   ├── EnergyCapsule.prefab          # Zero-g plasma projectile (~0.4u) with triggers
+│   │   ├── RingGate.prefab               # Holographic checkpoint ring (~2.4u)
+│   │   ├── EnergyReceiver.prefab         # Stationary energy collection dish (~1.5u)
+│   │   ├── RelayStation.prefab           # Dual-phase orbital transmission tower (~3.2u)
+│   │   └── AsteroidHazard.prefab         # Kinematic/patrolling kinetic obstacle (1.0-1.8u)
+│   │
+│   ├── Scenes/                           # 6 Registered Game Scenes
+│   │   ├── MainMenu.unity                # Scene 0: Sector selector & options
+│   │   ├── Level_01.unity                # Scene 1: Sector 1 (First Signal - 4 Gates)
+│   │   ├── Level_02.unity                # Scene 2: Sector 2 (The Debris Field - 5 Gates)
+│   │   ├── Level_03.unity                # Scene 3: Sector 3 (The Ion Storm - 5 Gates)
+│   │   ├── Level_04.unity                # Scene 4: Sector 4 (The Gravity Well - 5 Gates)
+│   │   └── Level_05.unity                # Scene 5: Sector 5 (The Omega Transmission - 6 Gates)
+│   │
+│   ├── Scripts/
+│   │   ├── Core/
+│   │   │   ├── GameManager.cs            # Persistent singleton & relay tracker
+│   │   │   ├── LevelManager.cs           # Sector lifecycle, objectives & corridor bounds
+│   │   │   └── BatteryManager.cs         # Shield capacity & power consumption
+│   │   ├── Player/
+│   │   │   ├── DroneController.cs        # 2D Newtonian flight, corridor soft-clamping & speed caps
+│   │   │   └── DroneVisuals.cs           # Thruster glow, banking & hit flashes
+│   │   ├── Delivery/
+│   │   │   ├── CapsuleLauncher.cs        # Rate-limited plasma core launcher (New Input System)
+│   │   │   ├── EnergyCapsule.cs          # Physics projectile & impact triggers
+│   │   │   └── TrajectoryPreview.cs      # Exact 30-sample quadratic line renderer
+│   │   ├── World/
+│   │   │   ├── RingGate.cs               # Sequential checkpoint state machine
+│   │   │   ├── RingManager.cs            # Sector ring coordinator & UI banners
+│   │   │   ├── EnergyReceiver.cs         # Single-latch capsule detection dish
+│   │   │   ├── RelayStation.cs           # Safe-speed velocity gate & docking
+│   │   │   ├── RelayStationVisuals.cs    # Spire energy charging & beacon beam
+│   │   │   ├── AsteroidHazard.cs         # Collision damage, rotation & runtime variation
+│   │   │   ├── CameraFollow.cs           # Smooth corridor damping & tracking
+│   │   │   ├── ParallaxBackground.cs     # Continuous cosmic parallax drift
+│   │   │   ├── CosmicEnvironment.cs      # Autonomous rotating celestial objects
+│   │   │   └── CosmicDustParticles.cs    # Procedural floating star mote field
+│   │   ├── UI/
+│   │   │   ├── HUDController.cs          # Real-time speedometer, battery & reference 1920x1080 matrix
+│   │   │   └── MainMenuController.cs     # Sci-fi mission selector & audio settings
+│   │   └── Effects/
+│   │       └── AudioManager.cs           # Zero-dependency procedural sound generator
+│   │
+│   └── Editor/
+│       ├── NebulaSceneBuilder.cs         # Deterministic scene generator & build pipeline
+│       └── NebulaRelayVerificationTests.cs # 19-check automated verification suite
 ```
 
 ---
 
 ## 🚀 Quick Start & Installation
 
-### Option 1: Play Standalone (.exe) — Windows x64
-No installation or Unity setup required. The standalone production build is pre-compiled and ready to play:
-
-1. Navigate to:
-   ```
-   Builds/Windows/
-   ```
-2. Double-click [NebulaRelay.exe](file:///c:/Users/User/Desktop/NebulaRelay/Builds/Windows/NebulaRelay.exe).
-3. The game launches into the Main Menu. Select **Sector 01: First Signal** and initiate flight!
-
-### Option 2: Open in Unity Editor
-For developers wishing to inspect, modify, or extend the project:
-
+### Option 1: Play in Unity Editor
 1. **System Requirements**:
-   * **Unity 6 LTS** (Recommended: `6000.0.84f1` or later)
-   * Universal Render Pipeline (URP 2D) package installed
+   * **Unity 6 LTS** (`6000.0.84f1` or compatible)
+   * Universal Render Pipeline (URP 2D)
+   * Unity Input System Package (active input handler: new)
    * Windows 10/11 x64
-2. **Launch Project**:
+2. **Open Project**:
    * Open **Unity Hub** $\rightarrow$ Click **Add** $\rightarrow$ Select the `NebulaRelay` repository directory.
    * Open the project with Unity 6.
-3. **One-Click Scene Rebuilder**:
-   * Navigate to the top Unity menu bar:
-     ```
-     Nebula Relay  ──>  Build All 5 Levels & Main Menu
-     ```
-   * This automatically calibrates all prefabs, generates all 6 scenes, assigns the continuous cosmic parallax layers, and registers build order.
-4. **Compile a Fresh Standalone Executable**:
-   * Navigate to:
-     ```
-     Nebula Relay  ──>  Build Windows Standalone (.exe)
-     ```
-   * A fresh executable will be compiled directly to `Builds/Windows/NebulaRelay.exe`.
+3. **Play Instantly**:
+   * Open [Assets/_NebulaRelay/Scenes/MainMenu.unity](Assets/_NebulaRelay/Scenes/MainMenu.unity) or [Assets/_NebulaRelay/Scenes/Level_01.unity](Assets/_NebulaRelay/Scenes/Level_01.unity).
+   * Press **Play** in the Unity Editor toolbar.
+
+### Option 2: Build Standalone Executable (.exe)
+To compile a fresh standalone Windows executable:
+1. In the Unity Editor, select from the top menu:
+   ```
+   Nebula Relay  ──>  Build Windows Standalone (.exe)
+   ```
+2. The executable will be compiled to `Builds/Windows/NebulaRelay.exe`.
 
 ---
 
 ## 🖥️ User Interface & Telemetry HUD
 
-The in-flight heads-up display ([HUDController](file:///c:/Users/User/Desktop/NebulaRelay/Assets/_NebulaRelay/Scripts/UI/HUDController.cs)) delivers continuous real-time flight telemetry:
+The in-flight heads-up display ([HUDController](Assets/_NebulaRelay/Scripts/UI/HUDController.cs)) renders with a reference 1920x1080 UI matrix so graphics scale crisply across all display resolutions:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -346,16 +344,17 @@ The in-flight heads-up display ([HUDController](file:///c:/Users/User/Desktop/Ne
 
 * **Target Framerate**: 60–144 FPS V-Sync
 * **Physics Refresh**: `FixedUpdate` running at 50Hz ($0.02\text{s}$)
+* **Physics Gravity**: `(0, 0)` zero gravity
 * **Coordinate System**: Pure 2D Cartesian ($X$ horizontal corridor, $Y$ vertical flight bounds)
 * **Audio Engine**: Mathematical procedural synthesizers; zero uncompressed audio disk bloat
-* **Camera System**: Dynamic orthographic framing with velocity-based lookahead damping
-* **Asset Optimization**: High-resolution 4K sprite textures utilizing sprite packing and power-of-two atlasing
+* **Camera System**: Orthographic size 7.5 across all 5 levels (8.0 in MainMenu) with velocity-based lookahead damping
+* **Asset Optimization**: High-resolution 1024px sprite textures with Full Rect mesh type, mipmaps disabled, and standard compression
 
 ---
 
-## 📜 Credits & License
+## 📜 Credits & Collaborators
 
-* **Developer**: Shreyas Adiga ([@shreyasadiga82](https://github.com/shreyasadiga82))
+* **Lead Developer**: Shreyas Adiga ([@shreyasadiga82](https://github.com/shreyasadiga82))
 * **Engine**: Built with [Unity 6](https://unity.com/)
 * **License**: MIT License — open for educational, personal, and commercial modification.
 

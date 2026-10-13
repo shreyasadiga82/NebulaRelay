@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using NebulaRelay.Core;
 using NebulaRelay.Player;
@@ -46,6 +47,8 @@ namespace NebulaRelay.UI
         private bool isPaused = false;
         private bool showSettings = false;
         private float masterVolume = 1.0f;
+        private float viewWidth = 1920f;
+        private float viewHeight = 1080f;
 
         private void InitStyles()
         {
@@ -146,7 +149,7 @@ namespace NebulaRelay.UI
         private void Update()
         {
             // Toggle pause on Escape key
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 TogglePause();
             }
@@ -165,22 +168,40 @@ namespace NebulaRelay.UI
             LevelManager lm = LevelManager.Instance;
             if (lm == null) return;
 
-            DrawTopLeftMissionObjective(lm);
-            DrawTopRightRelayIndicator(lm);
-            DrawBottomTelemetryDock(lm);
-            DrawContextualPopups(lm);
+            float targetWidth = 1920f;
+            float targetHeight = 1080f;
+            float scale = Mathf.Min((float)Screen.width / targetWidth, (float)Screen.height / targetHeight);
+            if (scale < 0.2f) scale = 0.2f;
 
-            if (isPaused)
+            viewWidth = Screen.width / scale;
+            viewHeight = Screen.height / scale;
+
+            Matrix4x4 origMatrix = GUI.matrix;
+            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
+
+            try
             {
-                DrawPauseModal();
+                DrawTopLeftMissionObjective(lm);
+                DrawTopRightRelayIndicator(lm);
+                DrawBottomTelemetryDock(lm);
+                DrawContextualPopups(lm);
+
+                if (isPaused)
+                {
+                    DrawPauseModal();
+                }
+                else if (lm.State == LevelState.Completed)
+                {
+                    DrawVictoryModal(lm);
+                }
+                else if (lm.State == LevelState.Failed)
+                {
+                    DrawFailureModal(lm);
+                }
             }
-            else if (lm.State == LevelState.Completed)
+            finally
             {
-                DrawVictoryModal(lm);
-            }
-            else if (lm.State == LevelState.Failed)
-            {
-                DrawFailureModal(lm);
+                GUI.matrix = origMatrix;
             }
         }
 
@@ -245,7 +266,7 @@ namespace NebulaRelay.UI
         {
             float cardW = 200f;
             float cardH = 44f;
-            float marginX = Screen.width - cardW - 24f;
+            float marginX = viewWidth - cardW - 24f;
             Rect area = new Rect(marginX, 20f, cardW, cardH);
 
             GUI.Box(area, GUIContent.none, panelStyle);
@@ -290,10 +311,10 @@ namespace NebulaRelay.UI
         // ==========================================
         private void DrawBottomTelemetryDock(LevelManager lm)
         {
-            float dockW = Mathf.Min(820f, Screen.width - 48f);
+            float dockW = Mathf.Min(820f, viewWidth - 48f);
             float dockH = 68f;
-            float dockX = (Screen.width - dockW) / 2f;
-            float dockY = Screen.height - dockH - 20f;
+            float dockX = (viewWidth - dockW) / 2f;
+            float dockY = viewHeight - dockH - 20f;
             Rect dockRect = new Rect(dockX, dockY, dockW, dockH);
 
             GUI.Box(dockRect, GUIContent.none, dockStyle);
@@ -412,7 +433,7 @@ namespace NebulaRelay.UI
         {
             float popW = 280f;
             float popH = 64f;
-            float popX = Screen.width - popW - 24f;
+            float popX = viewWidth - popW - 24f;
             float popY = 80f;
 
             // A. Slow Down Warning (if drone is near relay at dangerous speed)
@@ -460,7 +481,7 @@ namespace NebulaRelay.UI
 
             float w = 320f;
             float h = showSettings ? 280f : 240f;
-            Rect modalRect = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
+            Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
 
             GUI.Box(modalRect, GUIContent.none, panelStyle);
             GUILayout.BeginArea(new Rect(modalRect.x + 24f, modalRect.y + 20f, modalRect.width - 48f, modalRect.height - 40f));
@@ -516,7 +537,7 @@ namespace NebulaRelay.UI
 
             float w = 360f;
             float h = 240f;
-            Rect modalRect = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
+            Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
 
             GUI.Box(modalRect, GUIContent.none, panelStyle);
             GUILayout.BeginArea(new Rect(modalRect.x + 24f, modalRect.y + 20f, modalRect.width - 48f, modalRect.height - 40f));
@@ -559,7 +580,7 @@ namespace NebulaRelay.UI
 
             float w = 340f;
             float h = 230f;
-            Rect modalRect = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
+            Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
 
             GUI.Box(modalRect, GUIContent.none, panelStyle);
             GUILayout.BeginArea(new Rect(modalRect.x + 24f, modalRect.y + 20f, modalRect.width - 48f, modalRect.height - 40f));
@@ -590,7 +611,7 @@ namespace NebulaRelay.UI
 
         private void DrawModalBackdrop()
         {
-            DrawRect(new Rect(0, 0, Screen.width, Screen.height), new Color(0f, 0.02f, 0.05f, 0.75f));
+            DrawRect(new Rect(0, 0, viewWidth, viewHeight), new Color(0f, 0.02f, 0.05f, 0.75f));
         }
 
         private void DrawRect(Rect r, Color c)

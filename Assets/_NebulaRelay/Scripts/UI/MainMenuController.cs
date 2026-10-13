@@ -27,6 +27,8 @@ namespace NebulaRelay.UI
         private MenuState currentState = MenuState.Title;
         private int selectedMissionIndex = 1; // 1, 2, or 3
         private float audioVolume = 1.0f;
+        private float viewWidth = 1920f;
+        private float viewHeight = 1080f;
 
         // Styles
         private GUIStyle titleMainStyle;
@@ -123,17 +125,35 @@ namespace NebulaRelay.UI
         {
             InitStyles();
 
-            switch (currentState)
+            float targetWidth = 1920f;
+            float targetHeight = 1080f;
+            float scale = Mathf.Min((float)Screen.width / targetWidth, (float)Screen.height / targetHeight);
+            if (scale < 0.2f) scale = 0.2f;
+
+            viewWidth = Screen.width / scale;
+            viewHeight = Screen.height / scale;
+
+            Matrix4x4 origMatrix = GUI.matrix;
+            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
+
+            try
             {
-                case MenuState.Title:
-                    DrawTitleScreen();
-                    break;
-                case MenuState.MissionSelect:
-                    DrawMissionSelectScreen();
-                    break;
-                case MenuState.Settings:
-                    DrawSettingsScreen();
-                    break;
+                switch (currentState)
+                {
+                    case MenuState.Title:
+                        DrawTitleScreen();
+                        break;
+                    case MenuState.MissionSelect:
+                        DrawMissionSelectScreen();
+                        break;
+                    case MenuState.Settings:
+                        DrawSettingsScreen();
+                        break;
+                }
+            }
+            finally
+            {
+                GUI.matrix = origMatrix;
             }
         }
 
@@ -145,7 +165,7 @@ namespace NebulaRelay.UI
             float w = 440f;
             float h = 400f;
             float x = 60f; // Left side of widescreen like reference 1
-            float y = (Screen.height - h) / 2f + 20f;
+            float y = (viewHeight - h) / 2f + 20f;
             Rect menuRect = new Rect(x, y, w, h);
 
             GUI.Box(menuRect, GUIContent.none, panelBoxStyle);
@@ -202,10 +222,10 @@ namespace NebulaRelay.UI
         // ==========================================
         private void DrawMissionSelectScreen()
         {
-            float totalW = Mathf.Min(980f, Screen.width - 40f);
+            float totalW = Mathf.Min(980f, viewWidth - 40f);
             float totalH = 520f;
-            float posX = (Screen.width - totalW) / 2f;
-            float posY = (Screen.height - totalH) / 2f;
+            float posX = (viewWidth - totalW) / 2f;
+            float posY = (viewHeight - totalH) / 2f;
 
             Rect mainRect = new Rect(posX, posY, totalW, totalH);
             GUI.Box(mainRect, GUIContent.none, panelBoxStyle);
@@ -323,8 +343,8 @@ namespace NebulaRelay.UI
         {
             float w = 460f;
             float h = 380f;
-            float x = (Screen.width - w) / 2f;
-            float y = (Screen.height - h) / 2f;
+            float x = (viewWidth - w) / 2f;
+            float y = (viewHeight - h) / 2f;
             Rect r = new Rect(x, y, w, h);
 
             GUI.Box(r, GUIContent.none, panelBoxStyle);

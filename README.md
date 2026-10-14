@@ -457,6 +457,7 @@ NebulaRelay/
 ## 📜 Credits & License
 
 * **Lead Developer**: Shreyas Adiga ([@shreyasadiga82](https://github.com/shreyasadiga82))
+* TEAM: SIDHARTH R , SREELAKSHMI RAJESH
 * **Engine**: Built with [Unity 6 LTS](https://unity.com/)
 * **License**: Released under the [MIT License](LICENSE). Open for educational, personal, and commercial development.
 

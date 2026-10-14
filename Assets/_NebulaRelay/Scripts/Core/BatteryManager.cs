@@ -8,6 +8,7 @@ namespace NebulaRelay.Core
     /// <summary>
     /// BatteryManager tracks drone energy reserves.
     /// Drains power during thrust and projectile firing, and triggers mission failure upon depletion.
+    /// Retuned for extended missions so par run uses 45-60% battery and 4-5 asteroid hits remain survivable.
     /// </summary>
     [SelectionBase]
     public class BatteryManager : MonoBehaviour
@@ -20,10 +21,10 @@ namespace NebulaRelay.Core
         [SerializeField] private float startingBattery = 100.0f;
 
         [Header("Discharge Rates")]
-        [Tooltip("Battery percentage drained per second while firing thrusters (Default: 0.8%/s).")]
-        [SerializeField] private float thrustDrainRate = 0.8f;
+        [Tooltip("Battery percentage drained per second while firing thrusters (Calibrated for longer missions: 0.36%/s).")]
+        [SerializeField] private float thrustDrainRate = 0.36f;
 
-        [Tooltip("Battery percentage consumed immediately per capsule launched (Default: 4.0%).")]
+        [Tooltip("Battery percentage consumed immediately per capsule launched (Calibrated: 4.0%).")]
         [SerializeField] private float capsuleLaunchCost = 4.0f;
 
         [Tooltip("Threshold percentage below which low-battery warnings trigger (Default: 20%).")]
@@ -39,6 +40,10 @@ namespace NebulaRelay.Core
         public float BatteryPercentage => Mathf.Clamp01(CurrentBattery / maxBattery);
         public bool IsDepleted => CurrentBattery <= 0.001f;
         public bool IsLowBattery => !IsDepleted && CurrentBattery <= lowBatteryThreshold;
+
+        // Public getters for rates
+        public float ThrustDrainRate => thrustDrainRate;
+        public float CapsuleLaunchCost => capsuleLaunchCost;
 
         // Events
         public event Action<float> OnBatteryChanged;

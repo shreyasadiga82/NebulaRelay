@@ -72,7 +72,7 @@ namespace NebulaRelay.Delivery
         public float LaunchSpeed => launchSpeed;
         public int RemainingCapsules => remainingCapsules;
         public int CapsulesUsed => capsulesUsed;
-        public int MaxCapsules => MaxCapsulesPerMission;
+        public int MaxCapsules => SettingsManager.GetCapsuleLimit(SettingsManager.CurrentDifficulty, MaxCapsulesPerMission);
 
         public Vector2 CalculatedLaunchVelocity
         {
@@ -108,7 +108,8 @@ namespace NebulaRelay.Delivery
 
         public void ResetCapsules()
         {
-            remainingCapsules = MaxCapsulesPerMission;
+            int limit = SettingsManager.GetCapsuleLimit(SettingsManager.CurrentDifficulty, MaxCapsulesPerMission);
+            remainingCapsules = limit;
             capsulesUsed = 0;
             activeCapsulesCount = 0;
             nextFireTime = 0f;
@@ -117,7 +118,7 @@ namespace NebulaRelay.Delivery
                 StopCoroutine(outOfCapsulesCheckRoutine);
                 outOfCapsulesCheckRoutine = null;
             }
-            OnCapsuleCountChanged?.Invoke(remainingCapsules, MaxCapsulesPerMission);
+            OnCapsuleCountChanged?.Invoke(remainingCapsules, limit);
         }
 
         private void Update()
@@ -203,7 +204,8 @@ namespace NebulaRelay.Delivery
             capsulesUsed++;
             nextFireTime = Time.time + fireCooldown;
 
-            OnCapsuleCountChanged?.Invoke(remainingCapsules, MaxCapsulesPerMission);
+            int limit = SettingsManager.GetCapsuleLimit(SettingsManager.CurrentDifficulty, MaxCapsulesPerMission);
+            OnCapsuleCountChanged?.Invoke(remainingCapsules, limit);
             AudioManager.Instance?.PlayLaunchSound();
             AudioManager.Instance?.SetCapsuleInFlight(true);
 

@@ -5,12 +5,12 @@ namespace NebulaRelay.World
     /// <summary>
     /// CosmicEnvironment configures the multi-layer cosmic space scene for each level.
     /// Spawns the nebula backdrop, distant celestial bodies, floating rotating decorative asteroids,
-    /// and configures the live ParallaxBackground controller.
+    /// and configures the live ParallaxBackground controller. Supports 10 sectors.
     /// </summary>
     public class CosmicEnvironment : MonoBehaviour
     {
         [Header("Sector Configuration")]
-        [Range(1, 5)] public int sectorIndex = 1;
+        [Range(1, 10)] public int sectorIndex = 1;
 
         [Header("Sprites")]
         [SerializeField] private Sprite nebulaSprite;
@@ -65,11 +65,12 @@ namespace NebulaRelay.World
             }
 
             // 2. Distant Celestial Body Layer (Layer 2, SortingOrder -60)
-            if (planetSprite != null && (sectorIndex == 1 || sectorIndex == 4))
+            if (planetSprite != null && (sectorIndex == 1 || sectorIndex == 4 || sectorIndex == 6 || sectorIndex == 9))
             {
                 GameObject planetObj = new GameObject("Layer_Planet_Moon");
                 planetObj.transform.SetParent(transform, false);
-                Vector3 planetPos = (sectorIndex == 1) ? new Vector3(-14f, -4f, 0f) : new Vector3(18f, 6f, 0f);
+                bool isOcean = (sectorIndex == 1 || sectorIndex == 6);
+                Vector3 planetPos = isOcean ? new Vector3(-14f, -4f, 0f) : new Vector3(18f, 6f, 0f);
                 planetObj.transform.position = planetPos;
                 // Calibrated planet scale ~0.45u to sit distinctly in the background
                 planetObj.transform.localScale = new Vector3(0.45f, 0.45f, 1f);
@@ -77,7 +78,7 @@ namespace NebulaRelay.World
                 SpriteRenderer sr = planetObj.AddComponent<SpriteRenderer>();
                 sr.sprite = planetSprite;
                 sr.sortingOrder = -60;
-                sr.color = (sectorIndex == 1) ? new Color(0.75f, 0.85f, 0.95f, 0.75f) : new Color(0.9f, 0.75f, 0.45f, 0.75f);
+                sr.color = isOcean ? new Color(0.75f, 0.85f, 0.95f, 0.75f) : new Color(0.9f, 0.75f, 0.45f, 0.75f);
 
                 // Slow axial rotation
                 SlowSpinner spinner = planetObj.AddComponent<SlowSpinner>();
@@ -95,14 +96,14 @@ namespace NebulaRelay.World
                 // Seed Random state deterministically for repeatable scene generation
                 Random.InitState(1000 + sectorIndex * 37);
 
-                int count = 12;
+                int count = 14;
                 for (int i = 0; i < count; i++)
                 {
                     GameObject ast = new GameObject($"BgAsteroid_{i}");
                     ast.transform.SetParent(clusterObj.transform, false);
 
-                    float x = Random.Range(-35f, 35f);
-                    float y = Random.Range(-12f, 12f);
+                    float x = Random.Range(-30f, 30f);
+                    float y = Random.Range(-10f, 10f);
                     ast.transform.localPosition = new Vector3(x, y, 0f);
 
                     // Calibrated background asteroid scale 0.05 - 0.12 (clearly smaller than gameplay 1.0-1.8u)
@@ -120,8 +121,8 @@ namespace NebulaRelay.World
                     spinner.spinSpeed = Random.Range(-12f, 12f);
                 }
 
-                // Continuous drifting asteroid field
-                parallax.AddLayer(clusterObj.transform, 0.14f, new Vector2(-0.06f, 0.02f), false, "AsteroidBelt");
+                // Continuous drifting asteroid field anchored to camera
+                parallax.AddLayer(clusterObj.transform, 0.08f, new Vector2(-0.06f, 0.02f), true, "AsteroidBelt");
             }
         }
     }

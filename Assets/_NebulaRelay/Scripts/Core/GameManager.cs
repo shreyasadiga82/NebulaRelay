@@ -21,11 +21,11 @@ namespace NebulaRelay.Core
         public static GameManager Instance { get; private set; }
 
         [Header("Global Progression")]
-        [Tooltip("Total relays restored across the orbital network (0 to 5).")]
+        [Tooltip("Total relays restored across the orbital network (0 to 10).")]
         [SerializeField] private int totalRelaysRestored = 0;
 
-        [Tooltip("Maximum relays required to achieve victory across all 5 sectors.")]
-        [SerializeField] private int maxRelays = 5;
+        [Tooltip("Maximum relays required to achieve victory across all 10 sectors.")]
+        [SerializeField] private int maxRelays = 10;
 
         public GameState CurrentState { get; private set; } = GameState.Playing;
         public int TotalRelaysRestored => totalRelaysRestored;

@@ -15,7 +15,7 @@ namespace NebulaRelay.Core
 
     /// <summary>
     /// ScoreManager handles mission scoring, floating +100 point popups, smooth score animation,
-    /// and final mission score breakdowns (relays, mission completion bonus, time bonus, capsule bonus).
+    /// and final mission score breakdowns (relays, mission completion bonus, normalized time bonus, capsule bonus).
     /// </summary>
     public class ScoreManager : MonoBehaviour
     {
@@ -25,6 +25,7 @@ namespace NebulaRelay.Core
         public const int MissionCompletionBonus = 250;
         public const int PointsPerRemainingSecond = 5;
         public const int PointsPerRemainingCapsule = 150;
+        public const float ReferenceOldMissionDuration = 120.0f; // Old reference duration for time bonus normalization
 
         [Header("State")]
         [SerializeField] private int currentScore = 0;
@@ -120,13 +121,22 @@ namespace NebulaRelay.Core
         }
 
         /// <summary>
-        /// Calculates final mission completion score including time and capsule efficiency bonuses
-        /// plus difficulty multiplier bonuses (e.g. 1.5x on Hard).
+        /// Calculates final mission completion score including normalized time and capsule efficiency bonuses
+        /// plus difficulty multiplier bonuses (e.g. 1.5x on Hard, 2.0x on Expert).
         /// </summary>
         public void FinalizeMissionScore(float remainingSeconds, int remainingCapsules)
         {
             completionBonus = MissionCompletionBonus;
-            timeBonus = Mathf.Max(0, Mathf.FloorToInt(remainingSeconds) * PointsPerRemainingSecond);
+
+            // Normalized time bonus based on fraction of mission timer remaining
+            float totalDuration = LevelManager.Instance != null 
+                ? LevelManager.Instance.MissionDuration 
+                : ReferenceOldMissionDuration;
+
+            float fractionRemaining = Mathf.Clamp01(remainingSeconds / Mathf.Max(1.0f, totalDuration));
+            float maxTimeBonus = ReferenceOldMissionDuration * PointsPerRemainingSecond; // 600 points
+            timeBonus = Mathf.Max(0, Mathf.RoundToInt(fractionRemaining * maxTimeBonus));
+
             capsuleBonus = Mathf.Max(0, remainingCapsules * PointsPerRemainingCapsule);
 
             int subtotal = baseRelayScore + completionBonus + timeBonus + capsuleBonus;

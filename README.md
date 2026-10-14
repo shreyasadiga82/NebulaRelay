@@ -7,12 +7,14 @@
 ![Language](https://img.shields.io/badge/Language-C%23%209.0%2B-239120.svg?style=for-the-badge&logo=c-sharp&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white)
 ![Input System](https://img.shields.io/badge/Input-Unity%20Input%20System%20(New)-orange.svg?style=for-the-badge&logo=unity&logoColor=white)
-![Automated Tests](https://img.shields.io/badge/Tests-20%2F20%20Passing-brightgreen.svg?style=for-the-badge&logo=pytest&logoColor=white)
+![Automated Tests](https://img.shields.io/badge/Tests-48%2F48%20Passing-brightgreen.svg?style=for-the-badge&logo=pytest&logoColor=white)
+![Missions](https://img.shields.io/badge/Campaign-10%20Long%20Missions-cyan.svg?style=for-the-badge&logo=compass&logoColor=white)
+![Difficulty](https://img.shields.io/badge/Difficulty-4%20Modes-amber.svg?style=for-the-badge&logo=target&logoColor=white)
 
 <br/>
 
 **A precision zero-gravity 2D sci-fi courier simulator built for Unity 6 LTS.**  
-*Pilot through treacherous cosmic sectors, thread sequential checkpoint gates, launch plasma energy cores into receiver dishes, and execute soft-docking maneuvers at orbital relay spires to restore the deep-space communications network.*
+*Pilot through 10 expansive cosmic corridors, thread sequential checkpoint gates, weave through mid-route hazard fields, sling high-energy plasma capsules into receiver arrays, and execute precision soft-docking maneuvers at orbital relay spires across 4 flight difficulties.*
 
 ---
 
@@ -124,25 +126,48 @@ Powered by [AudioManager](Assets/_NebulaRelay/Scripts/Effects/AudioManager.cs):
 
 ## 🗺️ Campaign Sectors
 
-The campaign spans 5 progressively demanding sectors, selectable from the [MainMenuController](Assets/_NebulaRelay/Scripts/UI/MainMenuController.cs) Mission Briefing terminal:
+The campaign spans 10 progressively demanding sectors, selectable from the [MainMenuController](Assets/_NebulaRelay/Scripts/UI/MainMenuController.cs) Mission Briefing terminal across 4 distinct difficulty modes:
 
 ```
-[MAIN MENU]
+[MAIN MENU] ───> [DIFFICULTY SELECTION] ───> [10-MISSION SELECT (2x5 GRID)]
     │
-    ├── Sector 01: First Signal           ───>  4 Gates  │  Calm Orbital Corridor  │  Ocean Planet Vista
-    ├── Sector 02: The Debris Field       ───>  5 Gates  │  Asteroid Gauntlet      │  Shield Preservation
-    ├── Sector 03: The Ion Storm          ───>  5 Gates  │  Dynamic Hazard Slaloms │  Cross-Drift Navigation
-    ├── Sector 04: The Gravity Well       ───>  5 Gates  │  Tight Corridor Choke   │  Precision Retro-Burns
-    └── Sector 05: The Omega Transmission ───>  6 Gates  │  Galactic Nexus Hub     │  Full Network Recovery
+    ├── Sector 01: First Signal           ───>  16 Gates  │  Calm Orbital Corridor       │  Ocean Planet Vista
+    ├── Sector 02: The Debris Field       ───>  18 Gates  │  Asteroid Gauntlet           │  Shield Preservation
+    ├── Sector 03: The Ion Storm          ───>  20 Gates  │  Dynamic Hazard Slaloms      │  Cross-Drift Navigation
+    ├── Sector 04: The Gravity Well       ───>  22 Gates  │  Gravitational Corridors     │  Precision Retro-Burns
+    ├── Sector 05: The Omega Transmission ───>  24 Gates  │  Galactic Nexus Hub          │  Full Network Recovery
+    ├── Sector 06: The Silent Array       ───>  26 Gates  │  Dormant Sensor Grid         │  Debris Field Weave
+    ├── Sector 07: The Pulsar Reach       ───>  28 Gates  │  Pulsar Radiation Route      │  High Frequency Gauntlet
+    ├── Sector 08: The Shattered Moon     ───>  30 Gates  │  Lunar Fragment Gauntlet     │  Dense Moving Clusters
+    ├── Sector 09: The Event Horizon      ───>  32 Gates  │  Gravitational Ergosphere    │  Extreme Drift Navigation
+    └── Sector 10: The Last Signal        ───>  34 Gates  │  Galactic Relay Core (Finale)│  All 10 Relays Restored!
 ```
 
 | Sector | Title | Checkpoints | Environmental Hazards | Primary Objective |
 | :---: | :--- | :---: | :--- | :--- |
-| **01** | **First Signal** | 4 Ring Gates | Calm orbital drift corridor | Master zero-g propulsion, launch first capsule, dock at $\le 1.5\text{ u/s}$ |
-| **02** | **The Debris Field** | 5 Ring Gates | 3 Dense asteroid belts with collision damage | Thread tight orbital lanes, protect battery shields from kinetic hits |
-| **03** | **The Ion Storm** | 5 Ring Gates | Oscillating asteroid patrol hazards | Navigate moving slalom obstacles under dynamic cross-drift turbulence |
-| **04** | **The Gravity Well** | 5 Ring Gates | Concentrated perimeter debris & narrow gates | Precision speed management; high-risk retro-braking corridors |
-| **05** | **The Omega Transmission** | 6 Ring Gates | Grand multi-tier asteroid gauntlet | Thread 6 sequential gates and activate the master relay to restore the galaxy |
+| **01** | **First Signal** | 16 Ring Gates | Calm orbital drift corridor | Master zero-g propulsion, launch first capsule, dock at $\le 1.5\text{ u/s}$ |
+| **02** | **The Debris Field** | 18 Ring Gates | Dense asteroid belts with collision damage | Thread tight orbital lanes, protect battery shields from kinetic hits |
+| **03** | **The Ion Storm** | 20 Ring Gates | Oscillating asteroid patrol hazards | Navigate moving slalom obstacles under dynamic cross-drift turbulence |
+| **04** | **The Gravity Well** | 22 Ring Gates | Concentrated perimeter debris & narrow gates | Precision speed management; high-risk retro-braking corridors |
+| **05** | **The Omega Transmission** | 24 Ring Gates | Grand multi-tier asteroid gauntlet | Thread 24 sequential gates and activate the nexus relay |
+| **06** | **The Silent Array** | 26 Ring Gates | Decommissioned sensor array debris | Weave 26 sequential gates through dormant orbital corridors |
+| **07** | **The Pulsar Reach** | 28 Ring Gates | High-frequency radiation hazard zones | Thread 28 synchronized gates under tightening obstacle clearance |
+| **08** | **The Shattered Moon** | 30 Ring Gates | Lunar fragment gauntlet & moving clusters | Dodge drifting lunar rock fields across 30 sequential checkpoints |
+| **09** | **The Event Horizon** | 32 Ring Gates | Ergosphere gravitational anomalies | High-velocity momentum control across 32 gates |
+| **10** | **The Last Signal** | 34 Ring Gates | Central galactic core gauntlet | Synchronize all 34 gates, deliver final capsule, restore galactic communications |
+
+---
+
+## ⚙️ Difficulty Modes
+
+Drift Core features 4 calibrated difficulty modes extending gameplay without altering core physics:
+
+| Difficulty Mode | Rank Badge | Timer (Base) | Docking Speed Limit | Hazard Speed | Polyline Clearance | Capsules | Score Multiplier |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Explorer** | `EXPLORER` (Green) | **360s (6:00)** | $\le 1.8\text{ u/s}$ | $0.7\times$ | $\ge 3.2\text{u}$ | 4 Ready | $1.0\times$ |
+| **Pilot (Normal)**| `PILOT` (Cyan) | **300s (5:00)** | $\le 1.5\text{ u/s}$ | $1.0\times$ | $\ge 2.6\text{u}$ | 2 Ready | $1.0\times$ |
+| **Veteran** | `VETERAN` (Amber) | **270s (4:30)** | $\le 1.2\text{ u/s}$ | $1.3\times$ | $\ge 2.2\text{u}$ | 2 Ready | $1.5\times$ |
+| **Voidwalker** | `VOIDWALKER` (Red) | **240s (4:00)** | $\le 1.0\text{ u/s}$ | $1.5\times$ | $\ge 1.9\text{u}$ | 2 Ready | $2.0\times$ |
 
 ---
 
@@ -172,47 +197,21 @@ Where:
 ### 3. Safe Docking Interlock
 The relay docking clamp strictly evaluates drone kinetic energy at boundary contact:
 
-$$\|v_{\text{drone}}\| \le v_{\text{docking\_limit}} \quad (v_{\text{docking\_limit}} = 1.5\text{ u/s})$$
+$$\|v_{\text{drone}}\| \le v_{\text{docking\_limit}} \quad (v_{\text{docking\_limit}} = 1.5\text{ u/s on Normal})$$
 
-If $\|v_{\text{drone}}\| > 1.5\text{ u/s}$, docking fails and an elastic impulse repels the ship away from the spire.
+If $\|v_{\text{drone}}\| > v_{\text{docking\_limit}}$, docking fails and an elastic impulse repels the ship away from the spire.
 
 ---
 
-## 🧪 Automated Verification Suite
+## 🧪 Automated Verification Suite & Mission Validator
 
-Drift Core includes a comprehensive automated verification suite built into [NebulaRelayVerificationTests](Assets/_NebulaRelay/Editor/NebulaRelayVerificationTests.cs). All tests pass on every compilation and scene build:
-
-```
-============================================================
-[DRIFT CORE] AUTOMATED TEST SUITE EXECUTION SUMMARY
-============================================================
-[PASS]  01. ProjectileMath Zero-Gravity Linear Motion (p(1s) = (12, 0))
-[PASS]  02. ProjectileMath Acceleration Integration (p(1s).y = 5.10 matches 0.5*a*t^2)
-[PASS]  03. Trajectory Preview and Real Capsule Trajectory Alignment
-[PASS]  04. Drone Maximum Speed Clamping (Clamped magnitude = 8.0 u/s)
-[PASS]  05. Drag Deceleration Model (Decelerates from 8.0 to 7.2 u/s over 0.5s)
-[PASS]  06. Out-of-Order Ring Rejection (Gate 2 rejected while Gate 1 active)
-[PASS]  07. Correct Ring Sequence Advance (Gate 1 triggers Gate 2 advance)
-[PASS]  08. Single-Delivery Latch (Subsequent capsule deliveries ignored)
-[PASS]  09. Relay Safe-Speed Gate (Entry > 1.5 rejected, entry <= 1.5 accepted)
-[PASS]  10. Relay Prerequisite Gate (Relay blocked until energy capsule delivered)
-[PASS]  11. Battery Floor Clamp (Battery stops strictly at 0% without negative overflow)
-[PASS]  12. Low-Battery Warning (Triggers below 20% capacity)
-[PASS]  13. Victory Condition Verification (Restoring all sector relays triggers galactic victory)
-[PASS]  14. Build Settings Registration (All 6 scenes registered in EditorBuildSettings)
-[PASS]  15. Asset Integrity Check (All 6 core prefabs and 6 scene files verified on disk)
-[PASS]  16. Zero-Gravity Physics2D Configuration (Physics2D.gravity is (0, 0))
-[PASS]  17. Level Camera Orthographic Size (All 5 level cameras use orthographicSize 7.5)
-[PASS]  18. Zero Prefab Scale Overrides in Scenes (No propertyPath: m_LocalScale overrides in level scenes)
-[PASS]  19. Prefab World Target Sizing (Drone 1.20u, Ring 2.40u, Relay 3.20u, Asteroid 1.39u, Capsule 0.40u, Receiver 1.50u)
-[PASS]  20. UI Scaling & Font Size Integrity (Scales: 1366x768=1.07, 1536x864=1.20, 1920x1080=1.50, 2560x1440=2.00, 1280x800=1.00; Min font size >= 14px)
-------------------------------------------------------------
-RESULT: 32 / 32 TESTS PASSED (100% COVERAGE)
-============================================================
-```
+Drift Core includes two complementary automated validation suites:
+1. **Verification Test Suite** ([NebulaRelayVerificationTests](Assets/_NebulaRelay/Editor/NebulaRelayVerificationTests.cs)): 48 automated tests covering core math, drone physics, ring sequencing, battery discharge, camera orthographic bounds, zero scale overrides, 11-scene ordering, and UI text fitting across 5 desktop resolutions.
+2. **Mission Validator** ([MissionValidator](Assets/_NebulaRelay/Editor/MissionValidator.cs)): 40-combination validation checking all 10 missions across all 4 difficulty modes. Every combination verifies gate ordering, corridor bounds, 14–22u gate spacing, estimated par time $\ge 120\text{s}$, timer $\ge 1.25\times\text{par}$, battery drain within par targets, obstacle clearance, and nested deterministic subsets.
 
 To execute the test suite in Unity:
-> Top Menu Bar $\rightarrow$ **Drift Core** $\rightarrow$ **Run All 32 Verification Tests**
+> Top Menu Bar $\rightarrow$ **Drift Core** $\rightarrow$ **Run All Verification Tests**  
+> Top Menu Bar $\rightarrow$ **Drift Core** $\rightarrow$ **Validate All Missions**
 
 ---
 
@@ -274,17 +273,21 @@ NebulaRelay/
 │   │   │   ├── CameraFollow.cs           # Smooth corridor damping & aspect ratio adaptation
 │   │   │   ├── ParallaxBackground.cs     # Continuous cosmic parallax drift
 │   │   │   ├── CosmicEnvironment.cs      # Autonomous rotating celestial objects
-│   │   │   └── CosmicDustParticles.cs    # Procedural floating star mote field
+│   │   │   ├── CosmicDustParticles.cs    # Procedural floating star mote field
+│   │   │   ├── MissionData.cs            # 10 comprehensive mission definitions & par times
+│   │   │   └── MissionObstacleSpawner.cs # Seeded deterministic obstacle spawner (nested difficulties)
 │   │   ├── UI/
 │   │   │   ├── UIScale.cs                # Shared 1280x720 reference scaler for laptop & desktop UI
-│   │   │   ├── HUDController.cs          # Real-time speedometer, 220x24 battery & 14+ pt fonts
-│   │   │   └── MainMenuController.cs     # Sci-fi mission selector & dynamic background scaler
+│   │   │   ├── UIDesignSystem.cs         # Zero-allocation high-contrast sci-fi design system & procedural textures
+│   │   │   ├── HUDController.cs          # Real-time speedometer, 260x26 segmented battery, countdown timer & telemetry dock
+│   │   │   └── MainMenuController.cs     # 10-mission selector grid, difficulty select & mission overview panel
 │   │   └── Effects/
 │   │       └── AudioManager.cs           # Zero-dependency procedural sound generator
 │   │
 │   └── Editor/
-│       ├── NebulaSceneBuilder.cs         # Deterministic scene generator & build pipeline
-│       └── NebulaRelayVerificationTests.cs # 20-check automated verification suite
+│       ├── NebulaSceneBuilder.cs         # Deterministic scene generator & build pipeline (10 missions)
+│       ├── MissionValidator.cs           # 40-combination validation matrix (10 missions x 4 difficulties)
+│       └── NebulaRelayVerificationTests.cs # Comprehensive 48-check automated verification suite
 ```
 
 ---
@@ -310,36 +313,38 @@ To compile a fresh standalone Windows executable:
    ```
    Drift Core  ──>  Build Windows Standalone (.exe)
    ```
-2. The executable will be compiled to `Builds/Windows/DriftCore.exe`.
+2. The executable will be compiled to `C:\Games\DriftCore\DriftCore.exe`.
 
 ---
 
 ## 🖥️ User Interface & Telemetry HUD
 
-The in-flight heads-up display ([HUDController](Assets/_NebulaRelay/Scripts/UI/HUDController.cs)) renders with a reference 1920x1080 UI matrix so graphics scale crisply across all display resolutions:
+The in-flight heads-up display ([HUDController](Assets/_NebulaRelay/Scripts/UI/HUDController.cs)) renders with an adaptive 1280x720 virtual canvas matrix so graphics scale crisply across all display resolutions without per-frame memory allocations or fonts below 14px:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│  VELOCITY: 0.82 m/s [SAFE]                    BATTERY: [████████░░] 78% │
+│ [ MISSION 01: PROVING GROUNDS ]                   [ 05:00 ] [ ❚❚ ]     │
+│                 [ TARGET: RING GATE 02 / 08 ]                          │
 │                                                                        │
 │                                                                        │
-│                [ TARGET: RING GATE 2 OF 4 ]                            │
-│                                                                        │
-│                                                                        │
-│  RELAYS RESTORED: [ 1 / 5 ]                     SYSTEM INTEGRITY: 100% │
+│ ┌───────────────────────┬───────────────────────┬────────────────────┐ │
+│ │ BATTERY  78% [■■■■■░] │ VELOCITY 2.4 u/s SAFE │ CAPSULES [●●] 2 RDY│ │
+│ └───────────────────────┴───────────────────────┴────────────────────┘ │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 * **Speedometer & Safe Docking Indicator**:
-  * Displays current velocity in `m/s`.
-  * Renders in **Cyan** (`<= 1.5 m/s` - Safe for docking).
-  * Flashes in **Crimson** (`> 1.5 m/s` - Warning: Too fast to dock).
+  * Displays current velocity in `u/s` with threshold ticks.
+  * Renders in **Cyan** (`<= maxSafeSpeed` - Safe for docking).
+  * Flashes in **Crimson** (`> maxSafeSpeed` - Warning: Too fast to dock).
 * **Segmented Shield Battery Bar**:
-  * Real-time power percentage with color coding: Green ($>50\%$), Amber ($20\% - 50\%$), and Flashing Red ($<20\%$).
+  * High-visibility 260x26 segmented power bar: Green ($>50\%$), Amber ($20\% - 50\%$), and Flashing Red ($<20\%$).
 * **Sequential Objective Banner**:
-  * Updates dynamically to display the current target (`Ring Gate X`, `Fire Capsule at Receiver`, or `Dock at Relay Spire`).
-* **Persistent Relay Restoration Counter**:
-  * Tracks total campaign completion across all 5 sectors.
+  * Updates dynamically to display the current target (`Ring Gate X / Y`, `Fire Capsule at Receiver`, or `Dock at Relay Spire`).
+* **5-Minute Mission Timer**:
+  * Persistent countdown timer in `mm:ss` format with amber warning at $<60\text{s}$ and red pulsing urgency at $<30\text{s}$.
+* **Capsule Reserves Tracker**:
+  * Displays remaining plasma capsules with glowing pips and readiness indicator.
 
 ---
 

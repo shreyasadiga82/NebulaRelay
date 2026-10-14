@@ -13,16 +13,15 @@ namespace NebulaRelay.Editor
 {
     public static class NebulaSceneBuilder
     {
-        [MenuItem("Drift Core/Build All 5 Levels & Main Menu", priority = 1)]
+        [MenuItem("Drift Core/Build All 10 Levels & Main Menu", priority = 1)]
         public static void BuildAllScenes()
         {
             UpgradePrefabs();
             BuildMainMenuScene();
-            BuildLevel01Scene();
-            BuildLevel02Scene();
-            BuildLevel03Scene();
-            BuildLevel04Scene();
-            BuildLevel05Scene();
+            for (int i = 1; i <= 10; i++)
+            {
+                BuildMissionScene(i);
+            }
             ConfigureEditorBuildSettings();
 
             AssetDatabase.SaveAssets();
@@ -31,7 +30,7 @@ namespace NebulaRelay.Editor
 
             // Re-open Level 1 as the active working scene
             EditorSceneManager.OpenScene("Assets/_NebulaRelay/Scenes/Level_01.unity");
-            Debug.Log("<color=#00FF66><b>[Drift Core] Calibrated Scales & Safe Scenes Generated! All 5 Levels and Main Menu constructed and registered in Build Settings.</b></color>");
+            Debug.Log("<color=#00FF66><b>[Drift Core] Calibrated Scales & Safe Scenes Generated! All 10 Levels and Main Menu constructed and registered in Build Settings.</b></color>");
         }
 
         private const string BuildPathPrefKey = "DriftCore_StandaloneExePath";
@@ -59,13 +58,10 @@ namespace NebulaRelay.Editor
         [MenuItem("Drift Core/Build Windows Standalone (.exe)", priority = 2)]
         public static void BuildWindowsExecutable()
         {
-            // Do not rebuild all scenes synchronously immediately before BuildPlayer!
-            // First ensure any pending assets and open scenes are saved.
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             EditorSceneManager.SaveOpenScenes();
 
-            // Run in a delayed call so scene saving is fully finished first
             EditorApplication.delayCall += ExecuteBuildProcess;
         }
 
@@ -74,7 +70,6 @@ namespace NebulaRelay.Editor
             string exePath = GetConfiguredBuildPath();
             string buildDir = System.IO.Path.GetDirectoryName(exePath);
 
-            // Clean previous build directory completely so no stale or partial files remain
             if (System.IO.Directory.Exists(buildDir))
             {
                 try
@@ -93,15 +88,12 @@ namespace NebulaRelay.Editor
                 System.IO.Directory.CreateDirectory(buildDir);
             }
 
-            string[] scenePaths = new string[]
+            string[] scenePaths = new string[11];
+            scenePaths[0] = "Assets/_NebulaRelay/Scenes/MainMenu.unity";
+            for (int i = 1; i <= 10; i++)
             {
-                "Assets/_NebulaRelay/Scenes/MainMenu.unity",
-                "Assets/_NebulaRelay/Scenes/Level_01.unity",
-                "Assets/_NebulaRelay/Scenes/Level_02.unity",
-                "Assets/_NebulaRelay/Scenes/Level_03.unity",
-                "Assets/_NebulaRelay/Scenes/Level_04.unity",
-                "Assets/_NebulaRelay/Scenes/Level_05.unity"
-            };
+                scenePaths[i] = $"Assets/_NebulaRelay/Scenes/Level_{i:D2}.unity";
+            }
 
             BuildPlayerOptions opt = new BuildPlayerOptions
             {
@@ -142,7 +134,12 @@ namespace NebulaRelay.Editor
                 "level2",
                 "level3",
                 "level4",
-                "level5"
+                "level5",
+                "level6",
+                "level7",
+                "level8",
+                "level9",
+                "level10"
             };
 
             bool allValid = true;
@@ -171,15 +168,13 @@ namespace NebulaRelay.Editor
 
             if (allValid)
             {
-                Debug.Log("<color=#00FF66><b>[Drift Core] Build integrity verified! All level0..5 and globalgamemanagers present and valid (> 0 bytes).</b></color>");
+                Debug.Log("<color=#00FF66><b>[Drift Core] Build integrity verified! All level0..10 and globalgamemanagers present and valid (> 0 bytes).</b></color>");
             }
             return allValid;
         }
 
         // ==========================================
         // PREFAB UPGRADES WITH EXACT CALIBRATED SCALES & COLLIDERS
-        // All sizing calibrated in prefabs only, never on scene instances
-        // Target sizes: Drone ~1.2u, Gate ~2.4u, Relay ~3.2u, Asteroid 1.0-1.8u, Capsule ~0.4u, Receiver ~1.5u
         // ==========================================
         public static void UpgradePrefabs()
         {
@@ -336,15 +331,12 @@ namespace NebulaRelay.Editor
             cam.backgroundColor = backgroundColor;
             camObj.transform.position = new Vector3(minX, 0f, -10f);
 
-            // URP camera settings
             UniversalAdditionalCameraData urpCam = camObj.AddComponent<UniversalAdditionalCameraData>();
-            urpCam.renderPostProcessing = true; // Enable post-processing for Bloom
+            urpCam.renderPostProcessing = true;
 
-            // Smooth camera tracking for flight corridors
             CameraFollow follow = camObj.AddComponent<CameraFollow>();
             follow.SetTarget(null, new Vector2(minX, -6f), new Vector2(maxX, 6f));
 
-            // Continuous live ambient cosmic dust / star particle field
             camObj.AddComponent<CosmicDustParticles>();
 
             return camObj;
@@ -355,7 +347,7 @@ namespace NebulaRelay.Editor
             GameObject lightObj = new GameObject("Global Light 2D");
             Light2D light = lightObj.AddComponent<Light2D>();
             light.lightType = Light2D.LightType.Global;
-            light.color = new Color(0.9f, 0.95f, 1f, 1f); // Soft cosmic tint
+            light.color = new Color(0.9f, 0.95f, 1f, 1f);
             light.intensity = 1.1f;
         }
 
@@ -366,7 +358,6 @@ namespace NebulaRelay.Editor
 
             GameObject drone = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             drone.transform.position = position;
-            // Preserves prefab scale (0.132) without creating scene overrides
             return drone;
         }
 
@@ -377,7 +368,6 @@ namespace NebulaRelay.Editor
 
             GameObject ring = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             ring.transform.position = position;
-            // Preserves prefab scale (0.26) without creating scene overrides
             RingGate gate = ring.GetComponent<RingGate>();
             if (gate != null)
             {
@@ -396,7 +386,6 @@ namespace NebulaRelay.Editor
 
             GameObject relay = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             relay.transform.position = position;
-            // Preserves prefab scale (0.335) without creating scene overrides
             RelayStation station = relay.GetComponent<RelayStation>();
             if (station != null)
             {
@@ -414,31 +403,8 @@ namespace NebulaRelay.Editor
             return relay;
         }
 
-        private static GameObject CreateAsteroid(Vector3 position, float scaleMultiplier = 1.0f, float rotSpeed = 15f, Vector2 patrolOffset = default, float patrolSpeed = 1f)
-        {
-            string prefabPath = "Assets/_NebulaRelay/Prefabs/AsteroidHazard.prefab";
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-
-            GameObject asteroid = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-            asteroid.transform.position = position;
-            // Preserves prefab scale (0.17) without creating transform overrides; applies variation via component property
-            AsteroidHazard hazard = asteroid.GetComponent<AsteroidHazard>();
-            if (hazard != null)
-            {
-                SerializedObject so = new SerializedObject(hazard);
-                so.FindProperty("scaleMultiplier").floatValue = Mathf.Clamp(scaleMultiplier, 0.8f, 1.3f);
-                so.FindProperty("rotationSpeed").floatValue = rotSpeed;
-                so.FindProperty("patrolOffset").vector2Value = patrolOffset;
-                so.FindProperty("patrolSpeed").floatValue = patrolSpeed;
-                so.ApplyModifiedProperties();
-            }
-
-            return asteroid;
-        }
-
         private static void CreateManagers(int levelNumber, string levelTitle, float minCorridorX, float maxCorridorX)
         {
-            // Level Coordinator
             GameObject levelMgrObj = new GameObject("LevelManager");
             LevelManager lm = levelMgrObj.AddComponent<LevelManager>();
             SerializedObject so = new SerializedObject(lm);
@@ -446,14 +412,21 @@ namespace NebulaRelay.Editor
             so.FindProperty("levelTitle").stringValue = levelTitle;
             so.FindProperty("minCorridorX").floatValue = minCorridorX;
             so.FindProperty("maxCorridorX").floatValue = maxCorridorX;
-            so.FindProperty("marginX").floatValue = 2.0f;
+            so.FindProperty("marginX").floatValue = 4.0f;
             so.FindProperty("corridorMarginY").floatValue = 6.5f;
             so.ApplyModifiedProperties();
 
-            // HUD Controller
             levelMgrObj.AddComponent<HUDController>();
+            MissionObstacleSpawner spawner = levelMgrObj.AddComponent<MissionObstacleSpawner>();
+            string astPrefabPath = "Assets/_NebulaRelay/Prefabs/AsteroidHazard.prefab";
+            GameObject astPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(astPrefabPath);
+            if (astPrefab != null)
+            {
+                SerializedObject soSpawner = new SerializedObject(spawner);
+                soSpawner.FindProperty("asteroidPrefab").objectReferenceValue = astPrefab;
+                soSpawner.ApplyModifiedProperties();
+            }
 
-            // Distinct Singletons for clean lifecycle
             GameObject gmObj = new GameObject("GameManager");
             gmObj.AddComponent<GameManager>();
 
@@ -503,7 +476,7 @@ namespace NebulaRelay.Editor
         }
 
         // ==========================================
-        // 1. MAIN MENU SCENE
+        // MAIN MENU SCENE
         // ==========================================
         public static void BuildMainMenuScene()
         {
@@ -512,7 +485,6 @@ namespace NebulaRelay.Editor
             CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), 0f, 0f, 8.0f);
             CreateGlobalLight();
 
-            // Panoramic cosmic title background
             Sprite menuBg = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/MainMenu_CosmicBG.png");
             if (menuBg != null)
             {
@@ -538,216 +510,87 @@ namespace NebulaRelay.Editor
         }
 
         // ==========================================
-        // 2. LEVEL 1: FIRST SIGNAL (Corridor -18 to +18, 4 Rings)
+        // DATA-DRIVEN BUILDER FOR MISSIONS 1 TO 10
         // ==========================================
-        public static void BuildLevel01Scene()
+        public static void BuildMissionScene(int missionIndex)
         {
+            MissionDefinition def = MissionRegistry.GetMission(missionIndex);
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), -18f, 18f, 7.5f);
+            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), def.MinCorridorX, def.MaxCorridorX, 7.5f);
             CreateGlobalLight();
 
-            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Nebula_FirstSignal.png");
-            Sprite planet = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Planet_BlueOcean.png");
+            // Cycle through existing 5 nebula background sprites
+            string[] nebulaPaths = new string[]
+            {
+                "Assets/_NebulaRelay/Art/Nebula_FirstSignal.png",
+                "Assets/_NebulaRelay/Art/Nebula_DebrisField.png",
+                "Assets/_NebulaRelay/Art/Nebula_LastTransmission.png",
+                "Assets/_NebulaRelay/Art/Nebula_GravityWell.png",
+                "Assets/_NebulaRelay/Art/Nebula_OmegaCore.png"
+            };
+
+            int themeIndex = ((missionIndex - 1) % 5);
+            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>(nebulaPaths[themeIndex]);
             Sprite asteroid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
-            CreateCosmicEnvironment(1, nebula, planet, asteroid);
+            Sprite planet = null;
 
-            CreatePlayerDrone(new Vector3(-18f, 0f, 0f));
+            if (def.HasPlanet)
+            {
+                string planetPath = (def.PlanetThemeIndex == 1)
+                    ? "Assets/_NebulaRelay/Art/Planet_BlueOcean.png"
+                    : "Assets/_NebulaRelay/Art/Planet_AmberMoon.png";
+                planet = AssetDatabase.LoadAssetAtPath<Sprite>(planetPath);
+            }
 
-            CreateRing(1, new Vector3(-10f, 1.2f, 0f));
-            CreateRing(2, new Vector3(-2f, -1.5f, 0f));
-            CreateRing(3, new Vector3(6f, 2.0f, 0f));
-            CreateRing(4, new Vector3(12f, 0f, 0f));
+            CreateCosmicEnvironment(missionIndex, nebula, planet, asteroid);
 
-            CreateRelayStation(1, new Vector3(18f, 0.5f, 0f));
+            // Player Drone
+            CreatePlayerDrone(def.DroneStart);
 
+            // Ring Gates in sequential order
+            for (int i = 0; i < def.GatePositions.Length; i++)
+            {
+                CreateRing(i + 1, def.GatePositions[i]);
+            }
+
+            // Relay Station
+            CreateRelayStation(missionIndex, def.RelayPosition);
+
+            // Obstacles: Pre-baked scene hierarchy with nested difficulty tiers (Easy, Normal, Hard, Expert)
+            string astPrefabPath = "Assets/_NebulaRelay/Prefabs/AsteroidHazard.prefab";
+            GameObject astPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(astPrefabPath);
+            if (astPrefab != null)
+            {
+                MissionObstacleSpawner.BuildSceneObstacles(missionIndex, astPrefab);
+            }
+
+            // Ring Manager
             GameObject ringMgrObj = new GameObject("RingManager");
             ringMgrObj.AddComponent<RingManager>();
 
-            CreateManagers(1, "First Signal", -18f, 18f);
+            // Level & Game Managers
+            CreateManagers(missionIndex, def.Title, def.MinCorridorX, def.MaxCorridorX);
 
-            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/Level_01.unity");
+            string scenePath = $"Assets/_NebulaRelay/Scenes/Level_{missionIndex:D2}.unity";
+            EditorSceneManager.SaveScene(scene, scenePath);
         }
 
-        // ==========================================
-        // 3. LEVEL 2: THE DEBRIS FIELD (Corridor -24 to +24, 5 Rings, Asteroid Belts)
-        // ==========================================
-        public static void BuildLevel02Scene()
-        {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
-            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), -24f, 24f, 7.5f);
-            CreateGlobalLight();
-
-            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Nebula_DebrisField.png");
-            Sprite asteroid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
-            CreateCosmicEnvironment(2, nebula, null, asteroid);
-
-            CreatePlayerDrone(new Vector3(-24f, 0f, 0f));
-
-            CreateRing(1, new Vector3(-17f, -1.8f, 0f));
-            CreateAsteroid(new Vector3(-12f, 1.5f, 0f), 1.05f, 15f, new Vector2(0f, 1.2f), 1.0f);
-
-            CreateRing(2, new Vector3(-7f, 2.5f, 0f));
-            CreateAsteroid(new Vector3(-2f, -1.2f, 0f), 1.15f, -20f, new Vector2(0f, 1.5f), 1.2f);
-
-            CreateRing(3, new Vector3(3f, -2.5f, 0f));
-            CreateAsteroid(new Vector3(8f, 2.0f, 0f), 0.95f, 18f);
-
-            CreateRing(4, new Vector3(13f, 1.8f, 0f));
-            CreateAsteroid(new Vector3(18f, -1.5f, 0f), 1.0f, -15f);
-
-            CreateRing(5, new Vector3(19f, -1.2f, 0f));
-            CreateRelayStation(2, new Vector3(24f, 0f, 0f));
-
-            GameObject ringMgrObj = new GameObject("RingManager");
-            ringMgrObj.AddComponent<RingManager>();
-
-            CreateManagers(2, "The Debris Field", -24f, 24f);
-
-            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/Level_02.unity");
-        }
-
-        // ==========================================
-        // 4. LEVEL 3: THE ION STORM (Corridor -28 to +28, 5 Rings, Slalom Hazards)
-        // ==========================================
-        public static void BuildLevel03Scene()
-        {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
-            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), -28f, 28f, 7.5f);
-            CreateGlobalLight();
-
-            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Nebula_LastTransmission.png");
-            Sprite asteroid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
-            CreateCosmicEnvironment(3, nebula, null, asteroid);
-
-            CreatePlayerDrone(new Vector3(-28f, 0f, 0f));
-
-            CreateRing(1, new Vector3(-20f, 2.5f, 0f));
-            CreateAsteroid(new Vector3(-15f, 3.8f, 0f), 1.0f, 25f);
-            CreateAsteroid(new Vector3(-15f, -0.8f, 0f), 0.95f, -20f);
-
-            CreateRing(2, new Vector3(-10f, -2.5f, 0f));
-            CreateAsteroid(new Vector3(-5f, 0f, 0f), 1.15f, 18f, new Vector2(0f, 2.0f), 1.5f);
-
-            CreateRing(3, new Vector3(0f, 3.0f, 0f));
-            CreateAsteroid(new Vector3(5f, 3.8f, 0f), 1.0f, 20f);
-            CreateAsteroid(new Vector3(5f, -2.0f, 0f), 1.05f, -18f);
-
-            CreateRing(4, new Vector3(11f, -2.2f, 0f));
-            CreateAsteroid(new Vector3(16f, 1.5f, 0f), 0.95f, 15f);
-
-            CreateRing(5, new Vector3(20f, 1.8f, 0f));
-            CreateAsteroid(new Vector3(24f, -2.0f, 0f), 1.0f, -16f);
-
-            CreateRelayStation(3, new Vector3(28f, 0f, 0f));
-
-            GameObject ringMgrObj = new GameObject("RingManager");
-            ringMgrObj.AddComponent<RingManager>();
-
-            CreateManagers(3, "The Ion Storm", -28f, 28f);
-
-            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/Level_03.unity");
-        }
-
-        // ==========================================
-        // 5. LEVEL 4: THE GRAVITY WELL (Corridor -32 to +32, 5 Rings, Amber Vortex)
-        // ==========================================
-        public static void BuildLevel04Scene()
-        {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
-            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), -32f, 32f, 7.5f);
-            CreateGlobalLight();
-
-            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Nebula_GravityWell.png");
-            Sprite asteroid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
-            CreateCosmicEnvironment(4, nebula, null, asteroid);
-
-            CreatePlayerDrone(new Vector3(-32f, 0f, 0f));
-
-            CreateRing(1, new Vector3(-24f, -2.5f, 0f));
-            CreateAsteroid(new Vector3(-18f, 2.2f, 0f), 1.05f, 22f);
-            CreateAsteroid(new Vector3(-18f, -3.5f, 0f), 0.95f, -18f);
-
-            CreateRing(2, new Vector3(-12f, 3.2f, 0f));
-            CreateAsteroid(new Vector3(-6f, 0f, 0f), 1.15f, 16f, new Vector2(0f, 2.2f), 1.4f);
-
-            CreateRing(3, new Vector3(0f, -3.0f, 0f));
-            CreateAsteroid(new Vector3(6f, 1.5f, 0f), 1.0f, -20f);
-            CreateAsteroid(new Vector3(6f, -4.5f, 0f), 1.0f, 20f);
-
-            CreateRing(4, new Vector3(13f, 2.5f, 0f));
-            CreateAsteroid(new Vector3(19f, -1.8f, 0f), 1.05f, -15f);
-
-            CreateRing(5, new Vector3(24f, -2.0f, 0f));
-            CreateRelayStation(4, new Vector3(32f, 0f, 0f));
-
-            GameObject ringMgrObj = new GameObject("RingManager");
-            ringMgrObj.AddComponent<RingManager>();
-
-            CreateManagers(4, "The Gravity Well", -32f, 32f);
-
-            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/Level_04.unity");
-        }
-
-        // ==========================================
-        // 6. LEVEL 5: THE OMEGA TRANSMISSION (Corridor -38 to +38, 6 Rings, Grand Nexus)
-        // ==========================================
-        public static void BuildLevel05Scene()
-        {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
-            CreateSceneCamera(new Color(0.02f, 0.031f, 0.086f, 1f), -38f, 38f, 7.5f);
-            CreateGlobalLight();
-
-            Sprite nebula = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Nebula_OmegaCore.png");
-            Sprite asteroid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_NebulaRelay/Art/Asteroid_Detailed.png");
-            CreateCosmicEnvironment(5, nebula, null, asteroid);
-
-            CreatePlayerDrone(new Vector3(-38f, 0f, 0f));
-
-            CreateRing(1, new Vector3(-30f, 3.0f, 0f));
-            CreateAsteroid(new Vector3(-24f, 1.5f, 0f), 1.0f, 20f);
-            CreateAsteroid(new Vector3(-24f, -3.5f, 0f), 1.1f, -18f);
-
-            CreateRing(2, new Vector3(-18f, -3.0f, 0f));
-            CreateAsteroid(new Vector3(-12f, 2.0f, 0f), 1.15f, 16f, new Vector2(0f, 2.5f), 1.6f);
-
-            CreateRing(3, new Vector3(-6f, 3.5f, 0f));
-            CreateAsteroid(new Vector3(0f, 0.5f, 0f), 1.2f, -24f);
-            CreateAsteroid(new Vector3(0f, -3.8f, 0f), 0.95f, 22f);
-
-            CreateRing(4, new Vector3(7f, -3.0f, 0f));
-            CreateAsteroid(new Vector3(13f, 2.5f, 0f), 1.05f, -15f);
-
-            CreateRing(5, new Vector3(18f, 2.2f, 0f));
-            CreateAsteroid(new Vector3(25f, 3.0f, 0f), 1.15f, 18f);
-            CreateAsteroid(new Vector3(25f, -3.0f, 0f), 1.05f, -20f);
-
-            CreateRing(6, new Vector3(30f, -1.0f, 0f));
-            CreateRelayStation(5, new Vector3(38f, 0f, 0f));
-
-            GameObject ringMgrObj = new GameObject("RingManager");
-            ringMgrObj.AddComponent<RingManager>();
-
-            CreateManagers(5, "The Omega Transmission", -38f, 38f);
-
-            EditorSceneManager.SaveScene(scene, "Assets/_NebulaRelay/Scenes/Level_05.unity");
-        }
+        // Backward compatibility wrappers
+        public static void BuildLevel01Scene() => BuildMissionScene(1);
+        public static void BuildLevel02Scene() => BuildMissionScene(2);
+        public static void BuildLevel03Scene() => BuildMissionScene(3);
+        public static void BuildLevel04Scene() => BuildMissionScene(4);
+        public static void BuildLevel05Scene() => BuildMissionScene(5);
 
         public static void ConfigureEditorBuildSettings()
         {
-            string[] scenePaths = new string[]
+            string[] scenePaths = new string[11];
+            scenePaths[0] = "Assets/_NebulaRelay/Scenes/MainMenu.unity";
+            for (int i = 1; i <= 10; i++)
             {
-                "Assets/_NebulaRelay/Scenes/MainMenu.unity",
-                "Assets/_NebulaRelay/Scenes/Level_01.unity",
-                "Assets/_NebulaRelay/Scenes/Level_02.unity",
-                "Assets/_NebulaRelay/Scenes/Level_03.unity",
-                "Assets/_NebulaRelay/Scenes/Level_04.unity",
-                "Assets/_NebulaRelay/Scenes/Level_05.unity"
-            };
+                scenePaths[i] = $"Assets/_NebulaRelay/Scenes/Level_{i:D2}.unity";
+            }
 
             EditorBuildSettingsScene[] scenes = new EditorBuildSettingsScene[scenePaths.Length];
             for (int i = 0; i < scenePaths.Length; i++)

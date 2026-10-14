@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using NebulaRelay.Delivery;
+using NebulaRelay.Core;
 
 namespace NebulaRelay.World
 {
@@ -31,12 +32,15 @@ namespace NebulaRelay.World
         private Collider2D col;
         private Vector3 initialScale;
         private Coroutine pulseRoutine;
+        private float baseTriggerRadius = -1f;
 
         private void Awake()
         {
             col = GetComponent<Collider2D>();
             col.isTrigger = true; // Must be trigger
             initialScale = transform.localScale;
+
+            ApplyDifficultyTolerance();
 
             if (spriteRenderer == null)
             {
@@ -45,6 +49,15 @@ namespace NebulaRelay.World
 
             EnsureVisibleSprite();
             UpdateVisuals();
+        }
+
+        public void ApplyDifficultyTolerance()
+        {
+            if (col is CircleCollider2D circleCol)
+            {
+                if (baseTriggerRadius < 0f) baseTriggerRadius = circleCol.radius;
+                circleCol.radius = baseTriggerRadius * SettingsManager.GetReceiverToleranceMultiplier();
+            }
         }
 
         public void ResetReceiver()
@@ -56,6 +69,7 @@ namespace NebulaRelay.World
                 pulseRoutine = null;
             }
             transform.localScale = initialScale;
+            ApplyDifficultyTolerance();
             UpdateVisuals();
         }
 

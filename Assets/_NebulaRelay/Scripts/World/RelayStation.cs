@@ -140,7 +140,7 @@ namespace NebulaRelay.World
             }
             else
             {
-                LevelManager.Instance?.SetHUDMessage($"EXIT UNLOCKED! Approach dock below {maxSafeSpeed:F1} m/s to complete mission.", 4.0f, false);
+                LevelManager.Instance?.SetHUDMessage($"EXIT UNLOCKED! Approach dock below {maxSafeSpeed:F1} u/s to complete mission.", 4.0f, false);
             }
         }
 
@@ -211,7 +211,7 @@ namespace NebulaRelay.World
 
         private void ShowSpeedWarning(float currentSpeed)
         {
-            string msg = $"SLOW DOWN! Speed: {currentSpeed:F1} / Safe: ≤ {maxSafeSpeed:F1} m/s";
+            string msg = $"SLOW DOWN! Speed: {currentSpeed:F1} / Safe: ≤ {maxSafeSpeed:F1} u/s";
             LevelManager.Instance?.SetHUDMessage(msg, 1.5f, true);
         }
 

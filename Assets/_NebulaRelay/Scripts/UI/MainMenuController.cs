@@ -1,70 +1,104 @@
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using NebulaRelay.Core;
 using NebulaRelay.Effects;
+using NebulaRelay.World;
 
 namespace NebulaRelay.UI
 {
     public enum MenuState
     {
         Title,
+        DifficultySelect,
         MissionSelect,
         Settings
     }
 
     /// <summary>
-    /// MainMenuController provides the cinematic neon sci-fi title and mission selection screen
-    /// matching the reference image designs (Screens 1 & 2).
-    /// Includes comprehensive Settings menu powered by SettingsManager and PlayerPrefs.
+    /// MainMenuController provides the title screen, difficulty selection screen,
+    /// 10-mission selection grid, and system settings.
+    /// Complies strictly with the 4 difficulty modes, 10-mission progression,
+    /// and 8-px design system tokens.
     /// </summary>
     [SelectionBase]
     public class MainMenuController : MonoBehaviour
     {
-        [Header("Sci-Fi Palette")]
-        [SerializeField] private Color cyanNeon = new Color(0f, 0.92f, 1f, 1f);
-        [SerializeField] private Color amberNeon = new Color(1f, 0.75f, 0f, 1f);
-        [SerializeField] private Color greenNeon = new Color(0.18f, 0.95f, 0.5f, 1f);
-        [SerializeField] private Color redDanger = new Color(1f, 0.22f, 0.32f, 1f);
-        [SerializeField] private Color panelDark = new Color(0.03f, 0.05f, 0.1f, 0.92f);
-
         private MenuState currentState = MenuState.Title;
-        private int selectedMissionIndex = 1; // 1 to 5
+        private int selectedMissionIndex = 1; // 1 to 10
+        private GameDifficulty selectedDifficulty = GameDifficulty.Medium;
         private float viewWidth = 1280f;
         private float viewHeight = 720f;
-
-        // Styles
-        private GUIStyle titleMainStyle;
-        private GUIStyle subtitleStyle;
-        private GUIStyle primaryBtnStyle;
-        private GUIStyle secondaryBtnStyle;
-        private GUIStyle cardSelectStyle;
-        private GUIStyle cardUnselectStyle;
-        private GUIStyle panelBoxStyle;
-        private GUIStyle headerSubStyle;
-        private GUIStyle bodyStyle;
-        private GUIStyle taglineStyle;
-        private Texture2D whiteTex;
-        private bool stylesInit = false;
 
         // Dynamic background reference
         private Transform bgTransform;
         private SpriteRenderer bgRenderer;
 
+        // Difficulty card animation timers (0.15-0.25s)
+        private float[] difficultyCardAnim = new float[4] { 0f, 1f, 0f, 0f };
+
         private void Start()
         {
-            GameObject bgObj = GameObject.Find("MainMenu_Background");
-            if (bgObj != null)
-            {
-                bgTransform = bgObj.transform;
-                bgRenderer = bgObj.GetComponent<SpriteRenderer>();
-            }
+            UIDesignSystem.EnsureInitialized();
+            selectedDifficulty = SettingsManager.CurrentDifficulty;
             UpdateBackgroundScale();
         }
 
         private void Update()
         {
             UpdateBackgroundScale();
+            HandleKeyboardNavigation();
+
+            // Smooth animated easing on difficulty cards
+            for (int i = 0; i < 4; i++)
+            {
+                float target = ((int)selectedDifficulty == i) ? 1f : 0f;
+                difficultyCardAnim[i] = Mathf.MoveTowards(difficultyCardAnim[i], target, Time.deltaTime * 5f);
+            }
+        }
+
+        private void HandleKeyboardNavigation()
+        {
+            var kb = Keyboard.current;
+            if (kb == null) return;
+
+            if (kb.escapeKey.wasPressedThisFrame)
+            {
+                if (currentState == MenuState.MissionSelect)
+                {
+                    currentState = MenuState.DifficultySelect;
+                    AudioManager.Instance?.PlayButtonClick();
+                }
+                else if (currentState == MenuState.DifficultySelect || currentState == MenuState.Settings)
+                {
+                    currentState = MenuState.Title;
+                    AudioManager.Instance?.PlayButtonClick();
+                }
+            }
+
+            if (currentState == MenuState.DifficultySelect)
+            {
+                if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame)
+                {
+                    int prev = ((int)selectedDifficulty - 1 + 4) % 4;
+                    selectedDifficulty = (GameDifficulty)prev;
+                    SettingsManager.SetDifficulty(selectedDifficulty);
+                    AudioManager.Instance?.PlayButtonClick();
+                }
+                if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame)
+                {
+                    int next = ((int)selectedDifficulty + 1) % 4;
+                    selectedDifficulty = (GameDifficulty)next;
+                    SettingsManager.SetDifficulty(selectedDifficulty);
+                    AudioManager.Instance?.PlayButtonClick();
+                }
+                if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
+                {
+                    currentState = MenuState.MissionSelect;
+                    AudioManager.Instance?.PlayButtonClick();
+                }
+            }
         }
 
         private void UpdateBackgroundScale()
@@ -98,96 +132,9 @@ namespace NebulaRelay.UI
             }
         }
 
-        private void InitStyles()
-        {
-            if (stylesInit) return;
-
-            whiteTex = MakeTex(2, 2, Color.white);
-
-            titleMainStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontMenuMainTitle, // 64
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon }
-            };
-
-            subtitleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontMenuSubtitle, // 20
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(0.65f, 0.8f, 0.95f) }
-            };
-
-            headerSubStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontCardHeader, // 18
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = amberNeon }
-            };
-
-            bodyStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontBodyDetail, // 16
-                fontStyle = FontStyle.Bold,
-                wordWrap = true,
-                normal = { textColor = new Color(0.85f, 0.92f, 1f) }
-            };
-
-            taglineStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontSmallLabel, // 14
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(0.5f, 0.7f, 0.9f) }
-            };
-
-            panelBoxStyle = new GUIStyle(GUI.skin.box);
-            panelBoxStyle.normal.background = MakeBorderedTex(64, 64, panelDark, new Color(0f, 0.7f, 1f, 0.45f), 2);
-            panelBoxStyle.border = new RectOffset(6, 6, 6, 6);
-
-            primaryBtnStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = UIScale.FontButton, // 20
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.45f, 0.75f, 0.95f), cyanNeon, 2) },
-                hover = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0f, 0.6f, 0.95f, 0.95f), Color.white, 2) }
-            };
-
-            secondaryBtnStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = UIScale.FontButton, // 20
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.04f, 0.08f, 0.16f, 0.92f), cyanNeon, 2) },
-                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.4f, 0.7f, 0.95f), Color.white, 2) }
-            };
-
-            cardSelectStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = UIScale.FontCardHeader, // 18
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.35f, 0.6f, 0.95f), cyanNeon, 2) }
-            };
-
-            cardUnselectStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = UIScale.FontBodyDetail, // 16
-                fontStyle = FontStyle.Normal,
-                alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = new Color(0.7f, 0.82f, 0.95f), background = MakeBorderedTex(32, 32, new Color(0.04f, 0.07f, 0.14f, 0.85f), new Color(0.1f, 0.3f, 0.5f, 0.5f), 1) },
-                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0.08f, 0.16f, 0.3f, 0.95f), cyanNeon, 1) }
-            };
-
-            stylesInit = true;
-        }
-
         private void OnGUI()
         {
-            InitStyles();
+            UIDesignSystem.EnsureInitialized();
 
             Matrix4x4 origMatrix = UIScale.BeginMatrix();
             viewWidth = UIScale.GetViewWidth();
@@ -199,6 +146,9 @@ namespace NebulaRelay.UI
                 {
                     case MenuState.Title:
                         DrawTitleScreen();
+                        break;
+                    case MenuState.DifficultySelect:
+                        DrawDifficultySelectScreen();
                         break;
                     case MenuState.MissionSelect:
                         DrawMissionSelectScreen();
@@ -215,329 +165,504 @@ namespace NebulaRelay.UI
         }
 
         // ==========================================
-        // 1. TITLE SCREEN
+        // 1. TITLE SCREEN (Centered-Left sci-fi panel)
         // ==========================================
         private void DrawTitleScreen()
         {
             float totalW = 560f;
-            float totalH = 490f;
-            float posX = (viewWidth - totalW) / 2f;
+            float totalH = 500f;
+            // Placed slightly to the left so station art remains visible
+            float posX = Mathf.Max(UIDesignSystem.MarginSafe, (viewWidth - totalW) * 0.35f);
             float posY = (viewHeight - totalH) / 2f;
 
             Rect mainRect = new Rect(posX, posY, totalW, totalH);
-            GUI.Box(mainRect, GUIContent.none, panelBoxStyle);
+            GUI.Box(mainRect, GUIContent.none, UIDesignSystem.StylePanelSelected);
 
-            GUILayout.BeginArea(new Rect(posX + 36, posY + 32, totalW - 72, totalH - 64));
+            float innerX = posX + 36f;
+            float innerW = totalW - 72f;
 
-            GUILayout.Label("DRIFT CORE", titleMainStyle);
-            GUILayout.Space(8);
-            GUILayout.Label("PRECISION COURIER  //  ORBITAL RECONSTRUCTION", subtitleStyle);
-            GUILayout.Space(28);
+            // Title
+            Rect rTitle = new Rect(innerX, posY + 32f, innerW, 58f);
+            UIDesignSystem.DrawShadowedLabel(rTitle, "DRIFT CORE", UIDesignSystem.StyleMenuMainTitle, UIDesignSystem.ColorCyan);
 
-            if (GUILayout.Button("INITIATE MISSION  ›", primaryBtnStyle, GUILayout.Height(54)))
+            // Subtitle
+            Rect rSub = new Rect(innerX, posY + 94f, innerW, 24f);
+            UIDesignSystem.DrawShadowedLabel(rSub, "PRECISION COURIER  //  ORBITAL RECONSTRUCTION", UIDesignSystem.StyleMenuSubtitle, UIDesignSystem.ColorTextMuted);
+
+            float btnY = posY + 150f;
+            float btnH = 56f;
+            float gap = 16f;
+
+            if (GUI.Button(new Rect(innerX, btnY, innerW, btnH), "NEW TRANSMISSION  ›", UIDesignSystem.StyleButtonPrimary))
             {
                 AudioManager.Instance?.PlayButtonClick();
-                currentState = MenuState.MissionSelect;
+                selectedDifficulty = SettingsManager.CurrentDifficulty;
+                currentState = MenuState.DifficultySelect;
             }
 
-            GUILayout.Space(14);
-
-            if (GUILayout.Button("SYSTEM SETTINGS", secondaryBtnStyle, GUILayout.Height(50)))
+            if (GUI.Button(new Rect(innerX, btnY + (btnH + gap), innerW, btnH), "SYSTEM SETTINGS", UIDesignSystem.StyleButtonSecondary))
             {
                 AudioManager.Instance?.PlayButtonClick();
                 currentState = MenuState.Settings;
             }
 
-            GUILayout.Space(14);
-
-            if (GUILayout.Button("DISCONNECT TERMINAL", secondaryBtnStyle, GUILayout.Height(50)))
+            if (GUI.Button(new Rect(innerX, btnY + (btnH + gap) * 2, innerW, btnH), "DISCONNECT TERMINAL", UIDesignSystem.StyleButtonSecondary))
             {
                 AudioManager.Instance?.PlayButtonClick();
                 Application.Quit();
             }
 
-            GUILayout.Space(24);
-            GUILayout.Label("DEEP SPACE LOGISTICS NETWORK  •  SYSTEM ONLINE", taglineStyle);
-
-            GUILayout.EndArea();
+            // Footer status line
+            Rect rFooter = new Rect(innerX, posY + totalH - 46f, innerW, 22f);
+            UIDesignSystem.DrawShadowedLabel(rFooter, "DEEP SPACE LOGISTICS NETWORK  •  10 SECTORS ACTIVE", UIDesignSystem.StyleFooter, UIDesignSystem.ColorTextMuted);
         }
 
         // ==========================================
-        // 2. MISSION SELECT SCREEN
+        // 2. DIFFICULTY SELECTION SCREEN
+        // 4 Cards: Explorer, Pilot (Normal), Veteran, Voidwalker
         // ==========================================
-        private void DrawMissionSelectScreen()
+        private void DrawDifficultySelectScreen()
         {
-            float totalW = Mathf.Min(1140f, viewWidth - 60f);
+            float totalW = Mathf.Min(1200f, viewWidth - (UIDesignSystem.MarginSafe * 2));
             float totalH = 590f;
             float posX = (viewWidth - totalW) / 2f;
             float posY = (viewHeight - totalH) / 2f;
 
             Rect mainRect = new Rect(posX, posY, totalW, totalH);
-            GUI.Box(mainRect, GUIContent.none, panelBoxStyle);
+            GUI.Box(mainRect, GUIContent.none, UIDesignSystem.StylePanelSelected);
 
-            GUILayout.BeginArea(new Rect(posX + 28, posY + 20, totalW - 56, totalH - 40));
+            float innerX = posX + 28f;
+            float innerW = totalW - 56f;
 
-            // Top Breadcrumb Header
-            GUILayout.BeginHorizontal();
-            GUIStyle headTitle = new GUIStyle(titleMainStyle) { fontSize = 28, alignment = TextAnchor.MiddleLeft };
-            GUILayout.Label("DRIFT CORE  /  SELECT MISSION", headTitle, GUILayout.Height(38));
-            GUILayout.FlexibleSpace();
-            int totalRestored = GameManager.Instance != null ? GameManager.Instance.TotalRelaysRestored : 0;
-            int maxR = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;
-            GUILayout.Label($"STABILITY 100%  |  RELAYS {totalRestored}/{maxR}", headerSubStyle);
-            GUILayout.EndHorizontal();
+            // Header
+            Rect rHead = new Rect(innerX, posY + 20f, innerW, 36f);
+            UIDesignSystem.DrawShadowedLabel(rHead, "SELECT FLIGHT DIFFICULTY MODE", UIDesignSystem.StyleSectionHeader, UIDesignSystem.ColorCyan);
 
-            GUILayout.Space(14);
+            Rect rSub = new Rect(innerX, posY + 56f, innerW, 20f);
+            UIDesignSystem.DrawShadowedLabel(rSub, "Choose your flight parameters. Difficulty persists across missions and can be changed anytime.", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
 
-            GUILayout.BeginHorizontal();
+            // 4 Cards in a horizontal row
+            float cardSpacing = 16f;
+            float cardW = (innerW - (cardSpacing * 3)) / 4f;
+            float cardH = 390f;
+            float cardY = posY + 90f;
 
-            // LEFT COLUMN: 5 MISSION CARDS
-            float colW = (totalW - 80f) * 0.52f;
-            GUILayout.BeginVertical(GUILayout.Width(colW));
+            GameDifficulty[] diffs = new GameDifficulty[4]
+            {
+                GameDifficulty.Easy,
+                GameDifficulty.Medium,
+                GameDifficulty.Hard,
+                GameDifficulty.Expert
+            };
 
-            DrawMissionCard(1, "01  FIRST SIGNAL", "Calm orbital corridor. 4 compulsory relays. 2 capsules.");
-            GUILayout.Space(8);
-            DrawMissionCard(2, "02  THE DEBRIS FIELD", "Asteroid hazards. Tight routes. 5 compulsory relays.");
-            GUILayout.Space(8);
-            DrawMissionCard(3, "03  THE ION STORM", "Turbulent moving hazards. 5 compulsory relays.");
-            GUILayout.Space(8);
-            DrawMissionCard(4, "04  THE GRAVITY WELL", "Gravitational vortex corridors. 5 compulsory relays.");
-            GUILayout.Space(8);
-            DrawMissionCard(5, "05  THE OMEGA TRANSMISSION", "Grand galactic nexus. 6 compulsory relays. Final goal.");
+            for (int i = 0; i < 4; i++)
+            {
+                float cx = innerX + i * (cardW + cardSpacing);
+                DrawDifficultyCard(cx, cardY, cardW, cardH, diffs[i], i);
+            }
 
-            GUILayout.FlexibleSpace();
+            // Bottom Navigation
+            float bottomY = posY + totalH - 68f;
 
-            if (GUILayout.Button("‹  BACK TO MENU", secondaryBtnStyle, GUILayout.Width(200), GUILayout.Height(48)))
+            if (GUI.Button(new Rect(innerX, bottomY, 220f, 48f), "‹  BACK TO MENU", UIDesignSystem.StyleButtonSecondary))
             {
                 AudioManager.Instance?.PlayButtonClick();
                 currentState = MenuState.Title;
             }
 
-            GUILayout.EndVertical();
-
-            GUILayout.Space(24);
-
-            // RIGHT COLUMN: MISSION OVERVIEW PANEL
-            float overW = (totalW - 80f) * 0.48f;
-            GUILayout.BeginVertical(panelBoxStyle, GUILayout.Width(overW), GUILayout.Height(totalH - 96f));
-            GUILayout.Space(12);
-
-            GUILayout.Label("MISSION OVERVIEW", headerSubStyle);
-            GUILayout.Space(10);
-
-            string desc;
-            string targets;
-            if (selectedMissionIndex == 1)
-            {
-                desc = "Sector 1 presents a calm orbital flight corridor. Synchronize all 4 compulsory relays, launch an energy capsule into the receiver dish (max 2 capsules), and dock at the station at <= 1.5 m/s within 2 minutes.";
-                targets = "RELAYS: 4 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
-            }
-            else if (selectedMissionIndex == 2)
-            {
-                desc = "Sector 2 traverses an active asteroid debris field. Avoid dense collisions that drain battery shields, synchronize all 5 compulsory relays, and power the second relay station.";
-                targets = "RELAYS: 5 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
-            }
-            else if (selectedMissionIndex == 3)
-            {
-                desc = "High-energy ion turbulence creates moving asteroid slaloms. Thread through all 5 compulsory relays under dynamic cross-drift to activate the third relay.";
-                targets = "RELAYS: 5 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
-            }
-            else if (selectedMissionIndex == 4)
-            {
-                desc = "Golden gravitational anomalies pull drifting space debris into tight corridors. Precision thrust is required across 5 compulsory relays before unlocking the exit.";
-                targets = "RELAYS: 5 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
-            }
-            else
-            {
-                desc = "The master galactic nexus hub. Synchronize 6 compulsory relays across an epic asteroid gauntlet and deliver the final master signal to achieve total galactic recovery.";
-                targets = "RELAYS: 6 Compulsory  |  CAPSULES: 2 Max  |  TIME: 02:00";
-            }
-
-            int numRelays = (selectedMissionIndex == 1) ? 4 : ((selectedMissionIndex == 5) ? 6 : 5);
-            float duration = SettingsManager.GetMissionDuration();
-            int durMins = Mathf.FloorToInt(duration) / 60;
-            int durSecs = Mathf.FloorToInt(duration) % 60;
-            float safeSpd = SettingsManager.GetMaxSafeDockingSpeed();
-            float scoreMult = SettingsManager.GetScoreMultiplier();
-            string scoreTag = scoreMult > 1f ? $"  |  SCORE: {scoreMult:F1}x" : "";
-            targets = $"RELAYS: {numRelays} Compulsory  |  CAPSULES: 2 Max  |  TIME: {durMins:D2}:{durSecs:D2}  |  DOCK: ≤ {safeSpd:F1} m/s{scoreTag}";
-
-            GUILayout.Label(desc, bodyStyle);
-            GUILayout.Space(14);
-            GUILayout.Label(targets, headerSubStyle);
-
-            GUILayout.FlexibleSpace();
-
-            GUILayout.Label($"DIFFICULTY LEVEL: {SettingsManager.CurrentDifficulty.ToString().ToUpper()}", headerSubStyle);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("EASY", SettingsManager.CurrentDifficulty == GameDifficulty.Easy ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(38)))
-            {
-                SettingsManager.SetDifficulty(GameDifficulty.Easy);
-                AudioManager.Instance?.PlayButtonClick();
-            }
-            GUILayout.Space(6);
-            if (GUILayout.Button("MEDIUM", SettingsManager.CurrentDifficulty == GameDifficulty.Medium ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(38)))
-            {
-                SettingsManager.SetDifficulty(GameDifficulty.Medium);
-                AudioManager.Instance?.PlayButtonClick();
-            }
-            GUILayout.Space(6);
-            if (GUILayout.Button("HARD (1.5x)", SettingsManager.CurrentDifficulty == GameDifficulty.Hard ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(38)))
-            {
-                SettingsManager.SetDifficulty(GameDifficulty.Hard);
-                AudioManager.Instance?.PlayButtonClick();
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(10);
-
-            if (GUILayout.Button("START MISSION  ›", primaryBtnStyle, GUILayout.Height(52)))
+            if (GUI.Button(new Rect(posX + totalW - 28f - 260f, bottomY, 260f, 48f), "CONFIRM & PROCEED  ›", UIDesignSystem.StyleButtonPrimary))
             {
                 AudioManager.Instance?.PlayButtonClick();
-                SceneManager.LoadScene($"Level_0{selectedMissionIndex}");
+                SettingsManager.SetDifficulty(selectedDifficulty);
+                currentState = MenuState.MissionSelect;
             }
-
-            GUILayout.Space(8);
-            GUILayout.EndVertical();
-
-            GUILayout.EndHorizontal();
-            GUILayout.EndArea();
         }
 
-        private void DrawMissionCard(int index, string title, string subtitle)
+        private void DrawDifficultyCard(float x, float y, float w, float h, GameDifficulty diff, int index)
         {
-            bool isSelected = (selectedMissionIndex == index);
-            GUIStyle cardStyle = isSelected ? cardSelectStyle : cardUnselectStyle;
+            bool isSelected = (selectedDifficulty == diff);
+            Rect cardRect = new Rect(x, y, w, h);
 
-            if (GUILayout.Button($"   {title}\n   {subtitle}", cardStyle, GUILayout.Height(56)))
+            GUIStyle cardBox = isSelected ? UIDesignSystem.StylePanelSelected : UIDesignSystem.StylePanel;
+            if (GUI.Button(cardRect, GUIContent.none, cardBox))
+            {
+                selectedDifficulty = diff;
+                SettingsManager.SetDifficulty(diff);
+                AudioManager.Instance?.PlayButtonClick();
+            }
+
+            float pad = 16f;
+            float ix = x + pad;
+            float iw = w - (pad * 2);
+
+            // 1. Procedural Icon (48x48)
+            ProceduralIcon iconType = diff == GameDifficulty.Easy ? ProceduralIcon.Beacon
+                                    : (diff == GameDifficulty.Medium ? ProceduralIcon.Reticle
+                                    : (diff == GameDifficulty.Hard ? ProceduralIcon.WarningTriangle : ProceduralIcon.Singularity));
+            Color iconColor = diff == GameDifficulty.Easy ? UIDesignSystem.ColorGreenSafe
+                            : (diff == GameDifficulty.Medium ? UIDesignSystem.ColorCyan
+                            : (diff == GameDifficulty.Hard ? UIDesignSystem.ColorAmberWarning : UIDesignSystem.ColorMagenta));
+
+            Rect rIcon = new Rect(x + (w - 48f) / 2f, y + 20f, 48f, 48f);
+            UIDesignSystem.DrawIcon(rIcon, iconType, iconColor);
+
+            // 2. Title & Badge
+            string title = diff == GameDifficulty.Easy ? "EXPLORER"
+                         : (diff == GameDifficulty.Medium ? "PILOT"
+                         : (diff == GameDifficulty.Hard ? "VETERAN" : "VOIDWALKER"));
+
+            Rect rTitle = new Rect(ix, y + 78f, iw, 28f);
+            UIDesignSystem.DrawShadowedLabel(rTitle, title, UIDesignSystem.StyleCardTitle, iconColor);
+
+            // Subtitle
+            string sub = diff == GameDifficulty.Easy ? "EASY MODE"
+                       : (diff == GameDifficulty.Medium ? "NORMAL MODE"
+                       : (diff == GameDifficulty.Hard ? "HARD MODE (1.5x)" : "EXPERT MODE (2.0x)"));
+            Rect rSub = new Rect(ix, y + 106f, iw, 18f);
+            UIDesignSystem.DrawShadowedLabel(rSub, sub, UIDesignSystem.StyleCardSubtitle, UIDesignSystem.ColorTextMuted);
+
+            // 3. Difficulty Bar (1 to 4 Pips)
+            Rect rBar = new Rect(ix + (iw - 100f) / 2f, y + 130f, 100f, 10f);
+            UIDesignSystem.DrawSegmentedBar(rBar, (index + 1) / 4f, 4, iconColor, new Color(0.1f, 0.15f, 0.25f, 0.8f));
+
+            // 4. Description
+            string desc = SettingsManager.GetDifficultyDescription(diff);
+            Rect rDesc = new Rect(ix, y + 150f, iw, 50f);
+            UIDesignSystem.DrawShadowedLabel(rDesc, desc, UIDesignSystem.StyleCardDesc, UIDesignSystem.ColorTextBright);
+
+            // 5. Parameters List Box
+            float listY = y + 210f;
+            float rowH = 24f;
+
+            string timerStr = diff == GameDifficulty.Easy ? "360s (06:00)" : (diff == GameDifficulty.Medium ? "300s (05:00)" : (diff == GameDifficulty.Hard ? "270s (04:30)" : "240s (04:00)"));
+            string capsStr = diff == GameDifficulty.Easy ? "4 Capsules" : "2 Capsules";
+            string dockStr = $"≤ {SettingsManager.GetMaxSafeDockingSpeed(diff):F1} u/s";
+            string drainStr = $"{SettingsManager.GetBatteryDrainMultiplier(diff):F2}x Drain";
+            string scoreStr = $"{SettingsManager.GetScoreMultiplier(diff):F1}x Score";
+
+            DrawCardStatRow("TIMER", timerStr, ix, listY + rowH * 0, iw);
+            DrawCardStatRow("CAPSULES", capsStr, ix, listY + rowH * 1, iw);
+            DrawCardStatRow("DOCK LIMIT", dockStr, ix, listY + rowH * 2, iw);
+            DrawCardStatRow("BATTERY", drainStr, ix, listY + rowH * 3, iw);
+            DrawCardStatRow("SCORE MULT", scoreStr, ix, listY + rowH * 4, iw);
+
+            // 6. Select Button
+            float btnH = 38f;
+            Rect rBtn = new Rect(ix, y + h - btnH - 14f, iw, btnH);
+            GUIStyle btnStyle = isSelected ? UIDesignSystem.StyleButtonPrimary : UIDesignSystem.StyleButtonSecondary;
+            string btnText = isSelected ? "✓ SELECTED" : "SELECT";
+            if (GUI.Button(rBtn, btnText, btnStyle))
+            {
+                selectedDifficulty = diff;
+                SettingsManager.SetDifficulty(diff);
+                AudioManager.Instance?.PlayButtonClick();
+            }
+        }
+
+        private void DrawCardStatRow(string label, string val, float x, float y, float w)
+        {
+            Rect rL = new Rect(x, y, w * 0.45f, 22f);
+            Rect rV = new Rect(x + w * 0.45f, y, w * 0.55f, 22f);
+            UIDesignSystem.DrawShadowedLabel(rL, label, UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+            UIDesignSystem.DrawShadowedLabel(rV, val, UIDesignSystem.StyleCardValue, UIDesignSystem.ColorTextBright);
+        }
+
+        // ==========================================
+        // 3. 10-MISSION SELECT SCREEN
+        // 2x5 Grid of Mission Cards + Detail Panel on the right
+        // ==========================================
+        private void DrawMissionSelectScreen()
+        {
+            float totalW = Mathf.Min(1240f, viewWidth - (UIDesignSystem.MarginSafe * 2));
+            float totalH = 640f;
+            float posX = (viewWidth - totalW) / 2f;
+            float posY = (viewHeight - totalH) / 2f;
+
+            Rect mainRect = new Rect(posX, posY, totalW, totalH);
+            GUI.Box(mainRect, GUIContent.none, UIDesignSystem.StylePanelSelected);
+
+            float innerX = posX + 24f;
+            float innerW = totalW - 48f;
+
+            // Top Header: Never clipped, proper spacing
+            Rect rHead = new Rect(innerX, posY + 16f, 420f, 32f);
+            UIDesignSystem.DrawShadowedLabel(rHead, "DRIFT CORE  /  SELECT MISSION", UIDesignSystem.StyleSectionHeader, UIDesignSystem.ColorCyan);
+
+            // Active Difficulty Badge with [CHANGE] link
+            float diffX = innerX + 440f;
+            string diffBadgeText = $"DIFFICULTY: {SettingsManager.GetDifficultyShortBadge(selectedDifficulty)} (x{SettingsManager.GetScoreMultiplier(selectedDifficulty):F1})";
+            Rect rDiffBadge = new Rect(diffX, posY + 18f, 240f, 28f);
+            UIDesignSystem.DrawBadge(rDiffBadge, diffBadgeText, new Color(0.04f, 0.08f, 0.16f, 0.95f), UIDesignSystem.ColorCyan, 14);
+
+            Rect rChangeBtn = new Rect(diffX + 248f, posY + 18f, 96f, 28f);
+            if (GUI.Button(rChangeBtn, "CHANGE", UIDesignSystem.StyleButtonSecondary))
+            {
+                AudioManager.Instance?.PlayButtonClick();
+                currentState = MenuState.DifficultySelect;
+            }
+
+            // Progression status
+            int completedCount = GetCompletedMissionsCount(selectedDifficulty);
+            Rect rProg = new Rect(innerX + innerW - 200f, posY + 18f, 200f, 28f);
+            UIDesignSystem.DrawShadowedLabel(rProg, $"COMPLETED: {completedCount}/10", UIDesignSystem.StyleProgressText, UIDesignSystem.ColorGreenSafe);
+
+            // Divider line
+            GUI.color = UIDesignSystem.ColorBorderCyan;
+            GUI.DrawTexture(new Rect(innerX, posY + 52f, innerW, 1f), UIDesignSystem.TexWhite);
+            GUI.color = Color.white;
+
+            // Layout split: Left side 2x5 Grid (65% width), Right side Overview Panel (35% width)
+            float leftW = (innerW - 20f) * 0.63f;
+            float rightW = (innerW - 20f) * 0.37f;
+            float contentY = posY + 62f;
+            float contentH = totalH - 130f;
+
+            // --- LEFT COLUMN: 2x5 GRID OF 10 MISSIONS ---
+            float gridColW = (leftW - 12f) / 2f;
+            float gridRowH = (contentH - (8f * 4)) / 5f;
+
+            for (int i = 1; i <= 10; i++)
+            {
+                int col = (i - 1) % 2;
+                int row = (i - 1) / 2;
+                float mx = innerX + col * (gridColW + 12f);
+                float my = contentY + row * (gridRowH + 8f);
+
+                DrawMissionGridCard(i, mx, my, gridColW, gridRowH);
+            }
+
+            // --- RIGHT COLUMN: MISSION DETAIL PANEL ---
+            float rightX = innerX + leftW + 20f;
+            DrawMissionDetailPanel(rightX, contentY, rightW, contentH);
+
+            // Bottom Navigation Bar
+            float bottomY = posY + totalH - 58f;
+            if (GUI.Button(new Rect(innerX, bottomY, 200f, 46f), "‹  DIFFICULTY", UIDesignSystem.StyleButtonSecondary))
+            {
+                AudioManager.Instance?.PlayButtonClick();
+                currentState = MenuState.DifficultySelect;
+            }
+        }
+
+        private void DrawMissionGridCard(int index, float x, float y, float w, float h)
+        {
+            MissionDefinition m = MissionRegistry.GetMission(index);
+            bool isSelected = (selectedMissionIndex == index);
+            bool isUnlocked = IsMissionUnlocked(index, selectedDifficulty);
+            bool isDone = IsMissionDone(index, selectedDifficulty);
+
+            Rect cardRect = new Rect(x, y, w, h);
+            GUIStyle cardStyle = isSelected ? UIDesignSystem.StyleCardSelected : UIDesignSystem.StyleCard;
+
+            if (GUI.Button(cardRect, GUIContent.none, cardStyle))
             {
                 selectedMissionIndex = index;
                 AudioManager.Instance?.PlayButtonClick();
             }
+
+            float pad = 10f;
+            float ix = x + pad;
+            float iw = w - (pad * 2);
+
+            // Line 1: Number Badge + Title + Status Icon
+            Rect rNum = new Rect(ix, y + 8f, 32f, 20f);
+            UIDesignSystem.DrawBadge(rNum, $"{index:D2}", new Color(0.02f, 0.05f, 0.12f, 0.95f), UIDesignSystem.ColorCyan, 14);
+
+            Rect rTitle = new Rect(ix + 38f, y + 8f, iw - 70f, 20f);
+            Color tColor = isSelected ? Color.white : (isUnlocked ? UIDesignSystem.ColorTextBright : UIDesignSystem.ColorTextMuted);
+            UIDesignSystem.DrawFittedTitle(rTitle, m.Title.ToUpper(), UIDesignSystem.StyleGridTitle, tColor, 15, 14);
+
+            // Status Icon (Lock / Checkmark)
+            Rect rStatus = new Rect(ix + iw - 22f, y + 8f, 20f, 20f);
+            if (isDone)
+            {
+                UIDesignSystem.DrawIcon(rStatus, ProceduralIcon.Checkmark, UIDesignSystem.ColorGreenSafe);
+            }
+            else if (!isUnlocked)
+            {
+                UIDesignSystem.DrawIcon(rStatus, ProceduralIcon.Lock, UIDesignSystem.ColorRedCritical);
+            }
+
+            // Line 2: One-line briefing description
+            Rect rDesc = new Rect(ix, y + 32f, iw, 18f);
+            UIDesignSystem.DrawFittedTitle(rDesc, m.ShortDescription, UIDesignSystem.StyleGridDesc, UIDesignSystem.ColorTextMuted, 14, 14);
+
+            // Line 3: Gates count, Estimated par time, Best score
+            string bestKey = $"best_{index}_{(int)selectedDifficulty}";
+            int bestScore = PlayerPrefs.GetInt(bestKey, 0);
+            string bestStr = bestScore > 0 ? $"BEST: {bestScore:N0}" : "BEST: ---";
+
+            float par = m.GetEstimatedParTime();
+            int parMins = Mathf.FloorToInt(par) / 60;
+            int parSecs = Mathf.FloorToInt(par) % 60;
+            string metaStr = $"{m.GateCount} GATES  •  PAR {parMins}:{parSecs:D2}  •  {bestStr}";
+
+            Rect rMeta = new Rect(ix, y + 54f, iw, 18f);
+            UIDesignSystem.DrawShadowedLabel(rMeta, metaStr, UIDesignSystem.StyleGridMeta, isDone ? UIDesignSystem.ColorGreenSafe : UIDesignSystem.ColorTextMuted);
+        }
+
+        private void DrawMissionDetailPanel(float x, float y, float w, float h)
+        {
+            Rect rPanel = new Rect(x, y, w, h);
+            GUI.Box(rPanel, GUIContent.none, UIDesignSystem.StylePanel);
+
+            MissionDefinition m = MissionRegistry.GetMission(selectedMissionIndex);
+            bool isUnlocked = IsMissionUnlocked(selectedMissionIndex, selectedDifficulty);
+
+            float pad = 18f;
+            float ix = x + pad;
+            float iw = w - (pad * 2);
+
+            // Header: Mission Number & Title
+            Rect rHeader = new Rect(ix, y + 14f, iw, 28f);
+            string titleFull = $"MISSION {selectedMissionIndex:D2}: {m.Title.ToUpper()}";
+            UIDesignSystem.DrawFittedTitle(rHeader, titleFull, UIDesignSystem.StyleTitle, UIDesignSystem.ColorCyan, 22, 16);
+
+            // Sector Theme Line
+            Rect rSector = new Rect(ix, y + 44f, iw, 20f);
+            UIDesignSystem.DrawShadowedLabel(rSector, $"ORBITAL SECTOR {selectedMissionIndex:D2}  //  NETWORK RECONSTRUCTION", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+
+            // Full Briefing
+            Rect rBriefing = new Rect(ix, y + 74f, iw, 110f);
+            UIDesignSystem.DrawShadowedLabel(rBriefing, m.FullBriefing, UIDesignSystem.StyleDetailBriefing, UIDesignSystem.ColorTextBright);
+
+            // Key Stats Grid
+            float statsY = y + 195f;
+            float rowH = 28f;
+
+            float timerDuration = m.GetTimer(selectedDifficulty);
+            int tMin = Mathf.FloorToInt(timerDuration) / 60;
+            int tSec = Mathf.FloorToInt(timerDuration) % 60;
+
+            int caps = SettingsManager.GetCapsuleLimit(selectedDifficulty);
+            float safeSpd = SettingsManager.GetMaxSafeDockingSpeed(selectedDifficulty);
+            float scoreMult = SettingsManager.GetScoreMultiplier(selectedDifficulty);
+
+            string bestKey = $"best_{selectedMissionIndex}_{(int)selectedDifficulty}";
+            int bestScore = PlayerPrefs.GetInt(bestKey, 0);
+
+            DrawDetailStatRow("COMPULSORY GATES", $"{m.GateCount} Gates", ix, statsY + rowH * 0, iw);
+            DrawDetailStatRow("MISSION TIMER", $"{tMin:D2}:{tSec:D2} ({timerDuration:F0}s)", ix, statsY + rowH * 1, iw);
+            DrawDetailStatRow("CAPSULE RESERVES", $"{caps} Max", ix, statsY + rowH * 2, iw);
+            DrawDetailStatRow("SAFE DOCKING SPEED", $"≤ {safeSpd:F1} u/s", ix, statsY + rowH * 3, iw);
+            DrawDetailStatRow("SCORE MULTIPLIER", $"x{scoreMult:F1}", ix, statsY + rowH * 4, iw);
+            DrawDetailStatRow("PERSONAL BEST", bestScore > 0 ? $"{bestScore:N0} PTS" : "UNCOMPLETED", ix, statsY + rowH * 5, iw);
+
+            // START MISSION button
+            float btnH = 52f;
+            Rect rStartBtn = new Rect(ix, y + h - btnH - 16f, iw, btnH);
+
+            if (isUnlocked)
+            {
+                if (GUI.Button(rStartBtn, "START MISSION  ›", UIDesignSystem.StyleButtonPrimary))
+                {
+                    AudioManager.Instance?.PlayButtonClick();
+                    SceneManager.LoadScene($"Level_{selectedMissionIndex:D2}");
+                }
+            }
+            else
+            {
+                GUI.Button(rStartBtn, "🔒 LOCKED — COMPLETE PREVIOUS SECTOR", UIDesignSystem.StyleButtonSecondary);
+            }
+        }
+
+        private void DrawDetailStatRow(string label, string val, float x, float y, float w)
+        {
+            Rect rL = new Rect(x, y, w * 0.50f, 24f);
+            Rect rV = new Rect(x + w * 0.50f, y, w * 0.50f, 24f);
+            UIDesignSystem.DrawShadowedLabel(rL, label, UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+            UIDesignSystem.DrawShadowedLabel(rV, val, UIDesignSystem.StyleTableRowValue, UIDesignSystem.ColorTextBright);
+        }
+
+        private bool IsMissionUnlocked(int index, GameDifficulty diff)
+        {
+            if (index == 1) return true;
+            return PlayerPrefs.GetInt($"done_{index - 1}_{(int)diff}", 0) == 1;
+        }
+
+        private bool IsMissionDone(int index, GameDifficulty diff)
+        {
+            return PlayerPrefs.GetInt($"done_{index}_{(int)diff}", 0) == 1;
+        }
+
+        private int GetCompletedMissionsCount(GameDifficulty diff)
+        {
+            int count = 0;
+            for (int i = 1; i <= 10; i++)
+            {
+                if (IsMissionDone(i, diff)) count++;
+            }
+            return count;
         }
 
         // ==========================================
-        // 3. SETTINGS SCREEN
+        // 4. SETTINGS SCREEN
         // ==========================================
         private void DrawSettingsScreen()
         {
-            float w = 620f;
-            float h = 570f;
-            float x = (viewWidth - w) / 2f;
-            float y = (viewHeight - h) / 2f;
-            Rect r = new Rect(x, y, w, h);
+            float totalW = 600f;
+            float totalH = 540f;
+            float posX = (viewWidth - totalW) / 2f;
+            float posY = (viewHeight - totalH) / 2f;
 
-            GUI.Box(r, GUIContent.none, panelBoxStyle);
-            GUILayout.BeginArea(new Rect(r.x + 36, r.y + 24, r.width - 72, r.height - 48));
+            Rect mainRect = new Rect(posX, posY, totalW, totalH);
+            GUI.Box(mainRect, GUIContent.none, UIDesignSystem.StylePanelSelected);
 
-            GUIStyle setHead = new GUIStyle(titleMainStyle) { fontSize = 28 };
-            GUILayout.Label("SETTINGS & TELEMETRY", setHead);
-            GUILayout.Space(14);
+            float innerX = posX + 36f;
+            float innerW = totalW - 72f;
 
-            // Audio sliders
-            GUILayout.Label($"MASTER AUDIO VOLUME: {(int)(SettingsManager.MasterVolume * 100)}%", headerSubStyle);
-            float newMaster = GUILayout.HorizontalSlider(SettingsManager.MasterVolume, 0f, 1f);
+            Rect rTitle = new Rect(innerX, posY + 24f, innerW, 36f);
+            UIDesignSystem.DrawShadowedLabel(rTitle, "SYSTEM SETTINGS", UIDesignSystem.StyleModalTitle, UIDesignSystem.ColorCyan);
+
+            float curY = posY + 70f;
+
+            // Sliders
+            UIDesignSystem.DrawShadowedLabel(new Rect(innerX, curY, innerW, 20f), $"MASTER VOLUME  //  {(int)(SettingsManager.MasterVolume * 100)}%", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+            curY += 24f;
+            float newMaster = GUI.HorizontalSlider(new Rect(innerX, curY, innerW, 20f), SettingsManager.MasterVolume, 0f, 1f);
             if (Mathf.Abs(newMaster - SettingsManager.MasterVolume) > 0.01f) SettingsManager.SetMasterVolume(newMaster);
+            curY += 28f;
 
-            GUILayout.Space(6);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"SFX VOLUME: {(int)(SettingsManager.SFXVolume * 100)}%", bodyStyle, GUILayout.Width(180));
-            float newSfx = GUILayout.HorizontalSlider(SettingsManager.SFXVolume, 0f, 1f);
+            UIDesignSystem.DrawShadowedLabel(new Rect(innerX, curY, innerW, 20f), $"SFX VOLUME  //  {(int)(SettingsManager.SFXVolume * 100)}%", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+            curY += 24f;
+            float newSfx = GUI.HorizontalSlider(new Rect(innerX, curY, innerW, 20f), SettingsManager.SFXVolume, 0f, 1f);
             if (Mathf.Abs(newSfx - SettingsManager.SFXVolume) > 0.01f) SettingsManager.SetSFXVolume(newSfx);
-            GUILayout.EndHorizontal();
+            curY += 28f;
 
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"MUSIC VOLUME: {(int)(SettingsManager.MusicVolume * 100)}%", bodyStyle, GUILayout.Width(180));
-            float newMusic = GUILayout.HorizontalSlider(SettingsManager.MusicVolume, 0f, 1f);
+            UIDesignSystem.DrawShadowedLabel(new Rect(innerX, curY, innerW, 20f), $"MUSIC VOLUME  //  {(int)(SettingsManager.MusicVolume * 100)}%", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+            curY += 24f;
+            float newMusic = GUI.HorizontalSlider(new Rect(innerX, curY, innerW, 20f), SettingsManager.MusicVolume, 0f, 1f);
             if (Mathf.Abs(newMusic - SettingsManager.MusicVolume) > 0.01f) SettingsManager.SetMusicVolume(newMusic);
-            GUILayout.EndHorizontal();
+            curY += 32f;
 
-            GUILayout.Space(8);
-            GUILayout.BeginHorizontal();
-            bool mute = GUILayout.Toggle(SettingsManager.IsMuted, " MUTE ALL AUDIO", GUI.skin.toggle);
+            // Toggles
+            bool mute = GUI.Toggle(new Rect(innerX, curY, 220f, 24f), SettingsManager.IsMuted, " MUTE ALL AUDIO");
             if (mute != SettingsManager.IsMuted) SettingsManager.SetMuted(mute);
 
-            bool warn = GUILayout.Toggle(SettingsManager.CountdownAudioEnabled, " COUNTDOWN AUDIO", GUI.skin.toggle);
+            bool warn = GUI.Toggle(new Rect(innerX + 240f, curY, 240f, 24f), SettingsManager.CountdownAudioEnabled, " COUNTDOWN AUDIO");
             if (warn != SettingsManager.CountdownAudioEnabled) SettingsManager.SetCountdownAudio(warn);
-            GUILayout.EndHorizontal();
+            curY += 32f;
 
-            GUILayout.Space(10);
-            GUILayout.BeginHorizontal();
-            bool shake = GUILayout.Toggle(SettingsManager.ScreenShakeEnabled, " SCREEN SHAKE", GUI.skin.toggle);
+            bool shake = GUI.Toggle(new Rect(innerX, curY, 220f, 24f), SettingsManager.ScreenShakeEnabled, " SCREEN SHAKE");
             if (shake != SettingsManager.ScreenShakeEnabled) SettingsManager.SetScreenShake(shake);
 
-            bool vfx = GUILayout.Toggle(SettingsManager.VisualEffectsEnabled, " VISUAL EFFECTS", GUI.skin.toggle);
+            bool vfx = GUI.Toggle(new Rect(innerX + 240f, curY, 240f, 24f), SettingsManager.VisualEffectsEnabled, " VISUAL EFFECTS");
             if (vfx != SettingsManager.VisualEffectsEnabled) SettingsManager.SetVisualEffects(vfx);
-            GUILayout.EndHorizontal();
+            curY += 36f;
 
-            GUILayout.Space(10);
-            if (GUILayout.Button(Screen.fullScreen ? "SWITCH TO WINDOWED" : "SWITCH TO FULLSCREEN", secondaryBtnStyle, GUILayout.Height(38)))
+            // Fullscreen toggle
+            if (GUI.Button(new Rect(innerX, curY, innerW, 42f), Screen.fullScreen ? "SWITCH TO WINDOWED" : "SWITCH TO FULLSCREEN", UIDesignSystem.StyleButtonSecondary))
             {
                 SettingsManager.ToggleFullscreen();
             }
+            curY += 56f;
 
-            GUILayout.Space(10);
-            GUILayout.Label($"DIFFICULTY LEVEL: {SettingsManager.CurrentDifficulty.ToString().ToUpper()}", headerSubStyle);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("EASY", SettingsManager.CurrentDifficulty == GameDifficulty.Easy ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(36)))
+            // Back button
+            if (GUI.Button(new Rect(innerX, posY + totalH - 64f, innerW, 48f), "‹  BACK TO MENU", UIDesignSystem.StyleButtonPrimary))
             {
-                SettingsManager.SetDifficulty(GameDifficulty.Easy);
-                AudioManager.Instance?.PlayButtonClick();
-            }
-            GUILayout.Space(6);
-            if (GUILayout.Button("MEDIUM", SettingsManager.CurrentDifficulty == GameDifficulty.Medium ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(36)))
-            {
-                SettingsManager.SetDifficulty(GameDifficulty.Medium);
-                AudioManager.Instance?.PlayButtonClick();
-            }
-            GUILayout.Space(6);
-            if (GUILayout.Button("HARD (1.5x)", SettingsManager.CurrentDifficulty == GameDifficulty.Hard ? primaryBtnStyle : secondaryBtnStyle, GUILayout.Height(36)))
-            {
-                SettingsManager.SetDifficulty(GameDifficulty.Hard);
-                AudioManager.Instance?.PlayButtonClick();
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(12);
-            GUILayout.Label("FLIGHT CONTROLS:", headerSubStyle);
-            GUILayout.Label("• [W / A / S / D] or [Arrows] — Drone Inertial Thrusters\n• [Mouse Cursor] — Trajectory Aiming\n• [Space] or [LMB] — Energy Capsule Launch (Max 2)\n• [R] — Quick Sector Restart   |   [Esc] — Pause Menu", bodyStyle);
-
-            GUILayout.FlexibleSpace();
-
-            if (GUILayout.Button("‹  BACK", secondaryBtnStyle, GUILayout.Height(46)))
-            {
-                AudioManager.Instance?.PlayButtonClick();
                 currentState = MenuState.Title;
+                AudioManager.Instance?.PlayButtonClick();
             }
-
-            GUILayout.EndArea();
-        }
-
-        private Texture2D MakeTex(int width, int height, Color col)
-        {
-            Color[] pix = new Color[width * height];
-            for (int i = 0; i < pix.Length; i++) pix[i] = col;
-            Texture2D result = new Texture2D(width, height);
-            result.SetPixels(pix);
-            result.Apply();
-            return result;
-        }
-
-        private Texture2D MakeBorderedTex(int width, int height, Color fill, Color border, int borderWidth)
-        {
-            Texture2D result = new Texture2D(width, height);
-            Color[] pix = new Color[width * height];
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    bool isBorder = (x < borderWidth || x >= width - borderWidth || y < borderWidth || y >= height - borderWidth);
-                    pix[y * width + x] = isBorder ? border : fill;
-                }
-            }
-            result.SetPixels(pix);
-            result.Apply();
-            return result;
         }
     }
 }

@@ -28,8 +28,8 @@ namespace NebulaRelay.World
         [Tooltip("Patrol oscillation cycle speed.")]
         [SerializeField] private float patrolSpeed = 1.0f;
 
-        [Tooltip("Per-instance scale multiplier applied to the base prefab scale (Default: 1.0, range 0.8 to 1.3).")]
-        [Range(0.8f, 1.3f)]
+        [Tooltip("Per-instance scale multiplier applied to the base prefab scale (Range 0.5 to 1.3).")]
+        [Range(0.5f, 1.3f)]
         [SerializeField] private float scaleMultiplier = 1.0f;
 
         [Header("Visuals")]
@@ -41,7 +41,7 @@ namespace NebulaRelay.World
         public float ScaleMultiplier
         {
             get => scaleMultiplier;
-            set => scaleMultiplier = Mathf.Clamp(value, 0.8f, 1.3f);
+            set => scaleMultiplier = Mathf.Clamp(value, 0.5f, 1.3f);
         }
 
         private void Awake()
@@ -71,10 +71,11 @@ namespace NebulaRelay.World
                 transform.Rotate(0f, 0f, rotationSpeed * Time.deltaTime);
             }
 
-            // Patrol movement
+            // Patrol movement with difficulty speed multiplier
             if (patrolOffset.sqrMagnitude > 0.01f)
             {
-                float t = Mathf.Sin(Time.time * patrolSpeed);
+                float speedMultiplier = SettingsManager.GetHazardSpeedMultiplier();
+                float t = Mathf.Sin(Time.time * patrolSpeed * speedMultiplier);
                 transform.position = startPosition + (Vector3)(patrolOffset * t);
             }
         }

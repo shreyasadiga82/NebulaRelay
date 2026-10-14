@@ -23,6 +23,21 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_NebulaRelay/Scenes/Level_05.unity
     guid: 8905b5d1ef935c3493ac1783f4006e15
+  - enabled: 1
+    path: Assets/_NebulaRelay/Scenes/Level_06.unity
+    guid: 6a565983335b7174ca9f79ab8ce47e3d
+  - enabled: 1
+    path: Assets/_NebulaRelay/Scenes/Level_07.unity
+    guid: aef32c49aad257845aa20f1ef98a4502
+  - enabled: 1
+    path: Assets/_NebulaRelay/Scenes/Level_08.unity
+    guid: c4d0d461dcb7e9a4db0ba85364edda52
+  - enabled: 1
+    path: Assets/_NebulaRelay/Scenes/Level_09.unity
+    guid: 05bdb2651ecbf9d4c9877836e5cce1bc
+  - enabled: 1
+    path: Assets/_NebulaRelay/Scenes/Level_10.unity
+    guid: 054420b889a97ea4c86d903572542917
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

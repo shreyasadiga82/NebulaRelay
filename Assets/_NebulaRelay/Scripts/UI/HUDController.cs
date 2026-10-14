@@ -11,58 +11,38 @@ using NebulaRelay.Effects;
 namespace NebulaRelay.UI
 {
     /// <summary>
-    /// HUDController provides the cinematic sci-fi HUD matching all mission requirements:
-    /// - Top Telemetry: Mission, Countdown Timer (02:00), Current Score, Capsules (X/2), Relays (X/Y), Pause Button.
-    /// - Floating +100 point popups near activated relays.
-    /// - Bottom Telemetry Dock: Battery Shield, Speedometer with safe docking limit (1.5 m/s), Capsule status, Next Gate.
-    /// - Comprehensive Results Modal (Score breakdown, completion time, capsules used, Next Mission, Retry).
-    /// - Comprehensive Failure Modal (Reason, Time/Capsule status, Retry, Main Menu).
-    /// - In-Game Pause & Settings Menu with Master/SFX/Music sliders, Mute, VFX, Screen Shake, Countdown audio toggles.
+    /// HUDController delivers the polished sci-fi HUD and modal system:
+    /// - Top-Left: Mission Card (Line 1: single-line title; Line 2: score + difficulty badge; Line 3: gate progress bar).
+    /// - Top-Centre: Objective Banner with smooth fade transitions.
+    /// - Top-Right: Large mm:ss Timer (amber < 60s, red pulse < 30s) + Pause button.
+    /// - Bottom Telemetry Dock: Segmented Battery (>=260x26), Velocity + u/s + dock limit tick, Capsules in magenta, Next Target.
+    /// - Centred Modals: Fullscreen dimming overlay, HUD hidden behind modals, 2-column stats table, count-up score animation.
+    /// Zero per-frame allocations in OnGUI.
     /// </summary>
     [SelectionBase]
     public class HUDController : MonoBehaviour
     {
-        [Header("Sci-Fi Palette")]
-        [SerializeField] private Color cyanNeon = new Color(0f, 0.92f, 1f, 1f);       // #00EAFF
-        [SerializeField] private Color magentaNeon = new Color(1f, 0.18f, 0.65f, 1f);  // #FF2EA6
-        [SerializeField] private Color amberNeon = new Color(1f, 0.75f, 0f, 1f);       // #FFBF00
-        [SerializeField] private Color greenNeon = new Color(0.18f, 0.95f, 0.5f, 1f);   // #2EF280
-        [SerializeField] private Color redDanger = new Color(1f, 0.22f, 0.32f, 1f);     // #FF3852
-        [SerializeField] private Color panelDark = new Color(0.03f, 0.05f, 0.1f, 0.93f); // #080D1A
-
-        // GUI Styles
-        private GUIStyle panelStyle;
-        private GUIStyle dockStyle;
-        private GUIStyle titleHeaderStyle;
-        private GUIStyle cardHeaderStyle;
-        private GUIStyle cardBodyStyle;
-        private GUIStyle objectiveTextStyle;
-        private GUIStyle valueBoldStyle;
-        private GUIStyle smallLabelStyle;
-        private GUIStyle iconStyle;
-        private GUIStyle buttonSciFiStyle;
-        private GUIStyle pauseBtnStyle;
-        private GUIStyle modalTitleStyle;
-        private GUIStyle modalBodyStyle;
-        private GUIStyle floatingScoreStyle;
-
-        private Texture2D panelTex;
-        private Texture2D dockTex;
-        private Texture2D whiteTex;
-        private bool isStylesInit = false;
-
-        // Singleton & UI Input Guard
         public static HUDController Instance { get; private set; }
 
-        // Pause & Settings state
         private bool isPaused = false;
         private bool showSettings = false;
         private float viewWidth = 1280f;
         private float viewHeight = 720f;
 
+        // Banner text caching & fade transitions
+        private string cachedObjective = "";
+        private string lastObjective = "";
+        private float objectiveAlpha = 1f;
+
+        // Smooth animated telemetry values
+        private float displayBattery = 100f;
+        private float animatedResultScore = 0f;
+        private float resultAnimationStartTime = -1f;
+
         private void Awake()
         {
             Instance = this;
+            UIDesignSystem.EnsureInitialized();
         }
 
         private void OnDestroy()
@@ -87,8 +67,8 @@ namespace NebulaRelay.UI
             float guiY = Screen.height - mouseScreenPos.y;
             float refY = guiY / scale;
 
-            // Top HUD area (top bar + objective sub-bar): y in 0..165 reference units
-            if (refY <= 165f) return true;
+            // Top HUD area: y in 0..140 reference units
+            if (refY <= 140f) return true;
 
             // Bottom telemetry dock area: y in (viewHeight - 110)..viewHeight reference units
             float viewH = UIScale.GetViewHeight();
@@ -97,125 +77,35 @@ namespace NebulaRelay.UI
             return false;
         }
 
-        private void InitStyles()
-        {
-            if (isStylesInit) return;
-
-            whiteTex = MakeTex(2, 2, Color.white);
-            panelTex = MakeBorderedTex(64, 64, panelDark, new Color(0f, 0.65f, 0.9f, 0.5f), 1);
-            dockTex = MakeBorderedTex(64, 64, new Color(0.02f, 0.04f, 0.08f, 0.94f), new Color(0f, 0.75f, 1f, 0.45f), 1);
-
-            panelStyle = new GUIStyle(GUI.skin.box);
-            panelStyle.normal.background = panelTex;
-            panelStyle.border = new RectOffset(6, 6, 6, 6);
-
-            dockStyle = new GUIStyle(GUI.skin.box);
-            dockStyle.normal.background = dockTex;
-            dockStyle.border = new RectOffset(8, 8, 8, 8);
-
-            titleHeaderStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontHUDTitle, // 26
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = cyanNeon }
-            };
-
-            cardHeaderStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontCardHeader, // 18
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = amberNeon }
-            };
-
-            cardBodyStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontBodyDetail, // 16
-                fontStyle = FontStyle.Bold,
-                wordWrap = true,
-                normal = { textColor = new Color(0.85f, 0.92f, 1f, 0.95f) }
-            };
-
-            objectiveTextStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontObjective, // 20
-                fontStyle = FontStyle.Bold,
-                wordWrap = true,
-                normal = { textColor = Color.white }
-            };
-
-            smallLabelStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontSmallLabel, // 14
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.7f, 0.82f, 0.95f, 0.85f) }
-            };
-
-            valueBoldStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontValue, // 22
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = Color.white }
-            };
-
-            iconStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontValue, // 22
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon }
-            };
-
-            buttonSciFiStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = UIScale.FontButton, // 20
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.04f, 0.09f, 0.18f, 0.95f), cyanNeon, 2) },
-                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.45f, 0.75f, 0.95f), Color.white, 2) }
-            };
-
-            pauseBtnStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = UIScale.FontButton, // 20
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon, background = MakeBorderedTex(32, 32, new Color(0.03f, 0.06f, 0.12f, 0.92f), cyanNeon, 2) },
-                hover = { textColor = Color.white, background = MakeBorderedTex(32, 32, new Color(0f, 0.5f, 0.8f, 0.95f), Color.white, 2) }
-            };
-
-            modalTitleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontModalTitle, // 32
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = cyanNeon }
-            };
-
-            modalBodyStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = UIScale.FontCardHeader, // 18
-                alignment = TextAnchor.MiddleCenter,
-                wordWrap = true,
-                normal = { textColor = Color.white }
-            };
-
-            floatingScoreStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 20,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = amberNeon }
-            };
-
-            isStylesInit = true;
-        }
-
         private void Update()
         {
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 TogglePause();
+            }
+
+            // Smooth battery display animation
+            LevelManager lm = LevelManager.Instance;
+            if (lm != null && lm.Battery != null)
+            {
+                float target = lm.Battery.CurrentBattery;
+                displayBattery = Mathf.MoveTowards(displayBattery, target, Time.deltaTime * 60f);
+            }
+
+            // Objective text transition fade
+            if (lm != null)
+            {
+                string curr = lm.CurrentObjectiveText;
+                if (curr != cachedObjective)
+                {
+                    lastObjective = cachedObjective;
+                    cachedObjective = curr;
+                    objectiveAlpha = 0f;
+                }
+                if (objectiveAlpha < 1f)
+                {
+                    objectiveAlpha = Mathf.MoveTowards(objectiveAlpha, 1f, Time.deltaTime * 4f);
+                }
             }
         }
 
@@ -230,7 +120,7 @@ namespace NebulaRelay.UI
 
         private void OnGUI()
         {
-            InitStyles();
+            UIDesignSystem.EnsureInitialized();
 
             LevelManager lm = LevelManager.Instance;
             if (lm == null) return;
@@ -241,23 +131,36 @@ namespace NebulaRelay.UI
 
             try
             {
-                DrawTopMissionHUD(lm);
-                DrawFloatingScores();
-                DrawBottomTelemetryDock(lm);
-                DrawContextualPopups(lm);
+                bool isModalActive = isPaused || lm.State == LevelState.Completed || lm.State == LevelState.Failed;
 
-                if (isPaused)
+                // When modals are active, HUD is hidden behind the dimming overlay
+                if (!isModalActive)
                 {
-                    if (showSettings) DrawSettingsModal();
-                    else DrawPauseModal();
+                    DrawTopMissionCard(lm);
+                    DrawTopObjectiveBanner(lm);
+                    DrawTopRightTimer(lm);
+                    DrawFloatingScores();
+                    DrawBottomTelemetryDock(lm);
+                    DrawAlertBanner(lm);
                 }
-                else if (lm.State == LevelState.Completed)
+                else
                 {
-                    DrawResultsModal(lm);
-                }
-                else if (lm.State == LevelState.Failed)
-                {
-                    DrawFailureModal(lm);
+                    // Full screen 70% dark navy dimming overlay
+                    UIDesignSystem.DrawDimScreenOverlay(viewWidth, viewHeight);
+
+                    if (isPaused)
+                    {
+                        if (showSettings) DrawSettingsModal();
+                        else DrawPauseModal(lm);
+                    }
+                    else if (lm.State == LevelState.Completed)
+                    {
+                        DrawResultsModal(lm);
+                    }
+                    else if (lm.State == LevelState.Failed)
+                    {
+                        DrawFailureModal(lm);
+                    }
                 }
             }
             finally
@@ -267,633 +170,542 @@ namespace NebulaRelay.UI
         }
 
         // ==========================================
-        // 1. TOP SCI-FI TELEMETRY HUD BAR
-        // Layout:
-        // MISSION 01       TIME 01:42
-        // SCORE 300        CAPSULES 1/2
-        // RELAYS 3/5       [❚❚] PAUSE
+        // 1. TOP-LEFT MISSION CARD
+        // Line 1: MISSION 03: THE ION STORM (fits single line, auto-shrink)
+        // Line 2: SCORE 1,250 [PILOT x1.0]
+        // Line 3: GATE 07 / 24  [=======       ]
         // ==========================================
-        private void DrawTopMissionHUD(LevelManager lm)
+        private void DrawTopMissionCard(LevelManager lm)
         {
-            float barW = Mathf.Min(1180f, viewWidth - 48f);
-            float barH = 100f;
-            float barX = (viewWidth - barW) / 2f;
-            float barY = 18f;
+            float cardW = 380f;
+            float cardH = 96f;
+            float cardX = UIDesignSystem.MarginSafe;
+            float cardY = 16f;
 
-            Rect barRect = new Rect(barX, barY, barW, barH);
-            GUI.Box(barRect, GUIContent.none, panelStyle);
+            Rect cardRect = new Rect(cardX, cardY, cardW, cardH);
+            GUI.Box(cardRect, GUIContent.none, UIDesignSystem.StylePanel);
 
-            GUILayout.BeginArea(new Rect(barRect.x + 20, barRect.y + 10, barRect.width - 40, barRect.height - 20));
-            GUILayout.BeginHorizontal();
+            float innerX = cardX + 16f;
+            float innerW = cardW - 32f;
 
-            // LEFT COLUMN: Mission ID, Score, Relay Progress
-            GUILayout.BeginVertical(GUILayout.Width(barW * 0.42f));
-            string diffTag = lm.Difficulty == GameDifficulty.Hard ? " <color=#FF3852>[HARD 1.5x]</color>" : (lm.Difficulty == GameDifficulty.Easy ? " <color=#2EF280>[EASY]</color>" : " <color=#00EAFF>[MED]</color>");
-            GUILayout.Label($"MISSION {lm.LevelNumber:D2} : {lm.LevelTitle.ToUpper()}{diffTag}", titleHeaderStyle);
+            // Line 1: Mission title (single line, auto-shrink, no wrapping)
+            string missionTitle = $"MISSION {lm.LevelNumber:D2}: {lm.LevelTitle.ToUpper()}";
+            Rect rLine1 = new Rect(innerX, cardY + 12f, innerW, 24f);
+            UIDesignSystem.DrawFittedTitle(rLine1, missionTitle, UIDesignSystem.StyleTitle, UIDesignSystem.ColorCyan, 20, 14);
 
+            // Line 2: Score + Difficulty badge with multiplier
             ScoreManager sm = ScoreManager.Instance;
             int score = sm != null ? sm.DisplayScore : 0;
-            int activeRelays = lm.Rings != null ? lm.Rings.ActivatedRelaysCount : 0;
-            int totalRelays = lm.Rings != null ? lm.Rings.TotalRelays : 5;
+            float mult = SettingsManager.GetScoreMultiplier();
+            string multTag = mult > 1.0f ? $" x{mult:F1}" : "";
+            string badgeText = $"{SettingsManager.GetDifficultyShortBadge(lm.Difficulty)}{multTag}";
 
-            GUILayout.BeginHorizontal();
-            GUIStyle scoreStyle = new GUIStyle(cardHeaderStyle) { normal = { textColor = amberNeon }, fontSize = 18 };
-            GUILayout.Label($"SCORE: {score:D4}", scoreStyle, GUILayout.Width(160));
+            Rect rScore = new Rect(innerX, cardY + 38f, 180f, 22f);
+            UIDesignSystem.DrawShadowedLabel(rScore, $"SCORE  {score:N0}", UIDesignSystem.StyleHeader, UIDesignSystem.ColorAmberWarning);
 
-            GUIStyle relayProgStyle = new GUIStyle(cardHeaderStyle)
-            {
-                fontSize = 18,
-                normal = { textColor = (activeRelays >= totalRelays && totalRelays > 0) ? greenNeon : cyanNeon }
-            };
-            GUILayout.Label($"RELAYS: {activeRelays}/{totalRelays}", relayProgStyle);
-            GUILayout.EndHorizontal();
+            Color badgeCol = lm.Difficulty == GameDifficulty.Expert ? UIDesignSystem.ColorMagenta
+                           : (lm.Difficulty == GameDifficulty.Hard ? UIDesignSystem.ColorRedCritical
+                           : (lm.Difficulty == GameDifficulty.Easy ? UIDesignSystem.ColorGreenSafe : UIDesignSystem.ColorCyan));
+            Rect rBadge = new Rect(innerX + 190f, cardY + 38f, 130f, 22f);
+            UIDesignSystem.DrawBadge(rBadge, badgeText, new Color(0.04f, 0.08f, 0.16f, 0.95f), badgeCol, 14);
 
-            GUILayout.EndVertical();
+            // Line 3: Gate progress & slim progress bar
+            int activeGates = lm.Rings != null ? lm.Rings.ActivatedRelaysCount : 0;
+            int totalGates = lm.Rings != null ? lm.Rings.TotalRelays : 16;
+            float progress = totalGates > 0 ? (float)activeGates / totalGates : 0f;
 
-            GUILayout.FlexibleSpace();
+            Rect rGateText = new Rect(innerX, cardY + 66f, 110f, 18f);
+            UIDesignSystem.DrawShadowedLabel(rGateText, $"GATE {activeGates:D2} / {totalGates:D2}", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
 
-            // CENTER-RIGHT COLUMN: Countdown Timer & Capsule Allowance
-            GUILayout.BeginVertical(GUILayout.Width(barW * 0.36f));
-            int secondsLeft = Mathf.Max(0, Mathf.CeilToInt(lm.RemainingTime));
-            int mins = secondsLeft / 60;
-            int secs = secondsLeft % 60;
-
-            Color timerColor = secondsLeft <= 10 ? redDanger : (secondsLeft <= 30 ? amberNeon : Color.white);
-            GUIStyle timerStyle = new GUIStyle(titleHeaderStyle)
-            {
-                fontSize = 24,
-                normal = { textColor = timerColor },
-                alignment = TextAnchor.MiddleRight
-            };
-            GUILayout.Label($"TIME {mins:D2}:{secs:D2}", timerStyle);
-
-            CapsuleLauncher launcher = lm.Launcher;
-            int remainingCaps = launcher != null ? launcher.RemainingCapsules : 2;
-            int maxCaps = CapsuleLauncher.MaxCapsulesPerMission;
-
-            Color capCol = remainingCaps > 0 ? magentaNeon : redDanger;
-            GUIStyle capStyle = new GUIStyle(cardHeaderStyle)
-            {
-                fontSize = 18,
-                normal = { textColor = capCol },
-                alignment = TextAnchor.MiddleRight
-            };
-            GUILayout.Label($"CAPSULES: {remainingCaps}/{maxCaps}", capStyle);
-
-            GUILayout.EndVertical();
-
-            GUILayout.Space(16);
-
-            // FAR-RIGHT: Pause Button [ ❚❚ ]
-            GUILayout.BeginVertical(GUILayout.Width(52));
-            if (GUILayout.Button("❚❚", pauseBtnStyle, GUILayout.Width(50), GUILayout.Height(50)))
-            {
-                TogglePause();
-            }
-            GUILayout.EndVertical();
-
-            GUILayout.EndHorizontal();
-            GUILayout.EndArea();
-
-            // SUB-BAR: Current Objective Banner
-            float objW = barW * 0.75f;
-            float objH = 34f;
-            float objX = (viewWidth - objW) / 2f;
-            float objY = barY + barH + 6f;
-            Rect objRect = new Rect(objX, objY, objW, objH);
-            GUI.Box(objRect, GUIContent.none, dockStyle);
-
-            GUIStyle subObjStyle = new GUIStyle(objectiveTextStyle)
-            {
-                fontSize = 15,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = lm.AreAllRelaysSynchronized() ? greenNeon : Color.white }
-            };
-            GUI.Label(objRect, lm.CurrentObjectiveText, subObjStyle);
+            Rect rBar = new Rect(innerX + 115f, cardY + 71f, innerW - 115f, 8f);
+            UIDesignSystem.DrawProgressBar(rBar, progress, UIDesignSystem.ColorGreenSafe, new Color(0.1f, 0.2f, 0.35f, 0.8f));
         }
 
         // ==========================================
-        // 2. FLOATING +100 POINT INDICATORS
+        // 2. TOP-CENTRE OBJECTIVE BANNER
+        // Single clear objective line, fades smoothly on changes
+        // ==========================================
+        private void DrawTopObjectiveBanner(LevelManager lm)
+        {
+            float bannerW = Mathf.Min(480f, viewWidth - 840f);
+            if (bannerW < 300f) bannerW = 300f;
+            float bannerH = 46f;
+            float bannerX = (viewWidth - bannerW) / 2f;
+            float bannerY = 16f;
+
+            Rect bannerRect = new Rect(bannerX, bannerY, bannerW, bannerH);
+            GUI.Box(bannerRect, GUIContent.none, UIDesignSystem.StylePanel);
+
+            string objText = lm.CurrentObjectiveText;
+            Color col = Color.Lerp(new Color(1f, 1f, 1f, 0.2f), UIDesignSystem.ColorTextBright, objectiveAlpha);
+            Rect textRect = new Rect(bannerX + 12f, bannerY + 11f, bannerW - 24f, 24f);
+            UIDesignSystem.DrawShadowedLabel(textRect, objText, UIDesignSystem.StyleObjectiveBanner, col);
+        }
+
+        // ==========================================
+        // 3. TOP-RIGHT TIMER & PAUSE
+        // Large mm:ss (amber < 60s, red pulse < 30s) + [❚❚] button
+        // ==========================================
+        private void DrawTopRightTimer(LevelManager lm)
+        {
+            float boxW = 210f;
+            float boxH = 58f;
+            float boxX = viewWidth - UIDesignSystem.MarginSafe - boxW;
+            float boxY = 16f;
+
+            Rect timerPanel = new Rect(boxX, boxY, boxW, boxH);
+            GUI.Box(timerPanel, GUIContent.none, UIDesignSystem.StylePanel);
+
+            float timeSec = lm.RemainingTime;
+            int mins = Mathf.FloorToInt(timeSec) / 60;
+            int secs = Mathf.FloorToInt(timeSec) % 60;
+            string timeStr = $"{mins:D2}:{secs:D2}";
+
+            Color timerColor = UIDesignSystem.ColorCyan;
+            if (timeSec <= 30f)
+            {
+                float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 8f);
+                timerColor = Color.Lerp(UIDesignSystem.ColorRedCritical, Color.white, pulse * 0.35f);
+            }
+            else if (timeSec <= 60f)
+            {
+                timerColor = UIDesignSystem.ColorAmberWarning;
+            }
+
+            Rect rTimerText = new Rect(boxX + 18f, boxY + 12f, 110f, 34f);
+            UIDesignSystem.DrawShadowedLabel(rTimerText, timeStr, UIDesignSystem.StyleTimerValue, timerColor);
+
+            // Pause Button
+            Rect rPauseBtn = new Rect(boxX + 140f, boxY + 9f, 54f, 40f);
+            if (GUI.Button(rPauseBtn, "❚❚", UIDesignSystem.StyleButtonSecondary))
+            {
+                TogglePause();
+            }
+        }
+
+        // ==========================================
+        // 4. FLOATING SCORES (+100 near relays)
         // ==========================================
         private void DrawFloatingScores()
         {
             ScoreManager sm = ScoreManager.Instance;
-            if (sm == null || sm.FloatingScores == null) return;
+            if (sm == null || Camera.main == null) return;
 
             Camera cam = Camera.main;
-            if (cam == null) return;
+            float scale = UIScale.GetScale();
+            var list = sm.FloatingScores;
 
-            float currentScale = UIScale.CurrentScale;
-            float now = Time.time;
-
-            foreach (var fs in sm.FloatingScores)
+            for (int i = 0; i < list.Count; i++)
             {
-                float age = now - fs.SpawnTime;
-                if (age >= fs.Duration) continue;
+                var fs = list[i];
+                float age = Time.time - fs.SpawnTime;
+                Vector3 worldPos = fs.WorldPosition + Vector3.up * (age * 0.8f);
+                Vector3 screenPos = cam.WorldToScreenPoint(worldPos);
 
-                Vector3 screenPos = cam.WorldToScreenPoint(fs.WorldPosition);
-                if (screenPos.z < 0) continue; // Behind camera
-
-                float screenY = Screen.height - screenPos.y; // Invert for GUI
-                float refX = screenPos.x / currentScale;
-                float refY = screenY / currentScale - (age * 40f); // Drift upward
-
-                float alpha = Mathf.Clamp01(1f - (age / fs.Duration));
-                Color col = amberNeon;
-                col.a = alpha;
-
-                GUIStyle style = new GUIStyle(floatingScoreStyle);
-                style.normal.textColor = col;
-
-                Rect r = new Rect(refX - 60f, refY - 15f, 120f, 30f);
-                GUI.Label(r, $"+{fs.Points}", style);
+                if (screenPos.z > 0)
+                {
+                    float rx = screenPos.x / scale;
+                    float ry = (Screen.height - screenPos.y) / scale;
+                    float alpha = Mathf.Clamp01(1f - (age / fs.Duration));
+                    Color c = new Color(UIDesignSystem.ColorAmberWarning.r, UIDesignSystem.ColorAmberWarning.g, UIDesignSystem.ColorAmberWarning.b, alpha);
+                    UIDesignSystem.DrawShadowedLabel(new Rect(rx - 50, ry - 14, 100, 28), $"+{fs.Points}", UIDesignSystem.StyleFloatingScore, c);
+                }
             }
         }
 
         // ==========================================
-        // 3. BOTTOM TELEMETRY DOCK
+        // 5. BOTTOM TELEMETRY DOCK (Equal columns, vertical dividers)
+        // Col 1: BATTERY segmented bar >= 260x26
+        // Col 2: VELOCITY large + u/s + speed bar with dock tick
+        // Col 3: CAPSULES pips + "n READY" magenta
+        // Col 4: NEXT TARGET icon + target text
         // ==========================================
         private void DrawBottomTelemetryDock(LevelManager lm)
         {
-            float dockW = Mathf.Min(1060f, viewWidth - 48f);
-            float dockH = 90f;
+            float dockW = Mathf.Min(1200f, viewWidth - (UIDesignSystem.MarginSafe * 2));
+            float dockH = 82f;
             float dockX = (viewWidth - dockW) / 2f;
-            float dockY = viewHeight - dockH - 20f;
+            float dockY = viewHeight - dockH - 16f;
+
             Rect dockRect = new Rect(dockX, dockY, dockW, dockH);
+            GUI.Box(dockRect, GUIContent.none, UIDesignSystem.StylePanel);
 
-            GUI.Box(dockRect, GUIContent.none, dockStyle);
+            float colW = (dockW - 48f) / 4f;
 
-            float totalInnerW = dockW - 32f;
-            float batW = 310f;
-            float remainingW = totalInnerW - batW;
-            float subW = remainingW / 3f;
+            // --- COLUMN 1: BATTERY SHIELD ---
+            float c1X = dockX + 16f;
+            Rect rC1Label = new Rect(c1X, dockY + 10f, colW - 10f, 18f);
+            UIDesignSystem.DrawShadowedLabel(rC1Label, "BATTERY SHIELD", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
 
-            // Section A: Battery Shield Bar
-            DrawDockBattery(new Rect(dockX + 16f, dockY + 12f, batW, dockH - 24f), lm);
+            float battPct = lm.Battery != null ? lm.Battery.BatteryPercentage : (displayBattery / 100f);
+            Color battColor = battPct > 0.5f ? UIDesignSystem.ColorGreenSafe
+                            : (battPct > 0.2f ? UIDesignSystem.ColorAmberWarning : UIDesignSystem.ColorRedCritical);
 
-            // Section B: Speed Dial (turns red > 1.5 m/s)
-            DrawDockSpeed(new Rect(dockX + 16f + batW, dockY + 12f, subW, dockH - 24f), lm);
+            // Segmented battery bar (minimum 260x26)
+            float barW = Mathf.Max(220f, colW - 65f);
+            Rect rBattBar = new Rect(c1X, dockY + 34f, barW, 26f);
+            UIDesignSystem.DrawSegmentedBar(rBattBar, battPct, 12, battColor, new Color(0.08f, 0.16f, 0.28f, 0.7f));
 
-            // Section C: Capsule Status
-            DrawDockCapsule(new Rect(dockX + 16f + batW + subW, dockY + 12f, subW, dockH - 24f), lm);
+            Rect rBattVal = new Rect(c1X + barW + 8f, dockY + 33f, 55f, 26f);
+            UIDesignSystem.DrawShadowedLabel(rBattVal, $"{(int)(battPct * 100)}%", UIDesignSystem.StyleValueBold, battColor);
 
-            // Section D: Next Relay / Ring
-            DrawDockRing(new Rect(dockX + 16f + batW + subW * 2f, dockY + 12f, subW, dockH - 24f), lm);
-        }
+            // Divider 1
+            DrawVerticalDivider(c1X + colW, dockY + 12f, dockH - 24f);
 
-        private void DrawDockBattery(Rect r, LevelManager lm)
-        {
-            float pct = lm.Battery != null ? lm.Battery.BatteryPercentage : 1f;
-            Color batCol = pct > 0.4f ? cyanNeon : (pct > 0.2f ? amberNeon : redDanger);
+            // --- COLUMN 2: VELOCITY ---
+            float c2X = c1X + colW + 12f;
+            Rect rC2Label = new Rect(c2X, dockY + 10f, colW - 10f, 18f);
+            UIDesignSystem.DrawShadowedLabel(rC2Label, "VELOCITY", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
 
-            GUIStyle pctStyle = new GUIStyle(valueBoldStyle)
+            float speed = lm.Drone != null ? lm.Drone.Speed : 0f;
+            float dockLimit = lm.Relay != null ? lm.Relay.MaxSafeSpeed : SettingsManager.GetMaxSafeDockingSpeed();
+            Color speedColor = speed <= dockLimit ? UIDesignSystem.ColorGreenSafe : UIDesignSystem.ColorRedCritical;
+
+            Rect rSpeedVal = new Rect(c2X, dockY + 30f, 85f, 28f);
+            UIDesignSystem.DrawShadowedLabel(rSpeedVal, $"{speed:F1}", UIDesignSystem.StyleValueBold, speedColor);
+
+            Rect rSpeedUnit = new Rect(c2X + 88f, dockY + 34f, 40f, 22f);
+            UIDesignSystem.DrawShadowedLabel(rSpeedUnit, "u/s", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+
+            // Speedometer bar with safe dock tick
+            Rect rSpeedBar = new Rect(c2X + 130f, dockY + 41f, colW - 150f, 10f);
+            UIDesignSystem.DrawSpeedometerBar(rSpeedBar, speed, 8.0f, dockLimit);
+
+            // Divider 2
+            DrawVerticalDivider(c2X + colW - 12f, dockY + 12f, dockH - 24f);
+
+            // --- COLUMN 3: CAPSULES ---
+            float c3X = c2X + colW;
+            Rect rC3Label = new Rect(c3X, dockY + 10f, colW - 10f, 18f);
+            UIDesignSystem.DrawShadowedLabel(rC3Label, "CAPSULES", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+
+            int remainingCaps = lm.Launcher != null ? lm.Launcher.RemainingCapsules : 2;
+            int maxCaps = lm.Launcher != null ? lm.Launcher.MaxCapsules : 2;
+
+            // Draw capsule icon pips
+            float pipX = c3X;
+            for (int p = 0; p < maxCaps; p++)
             {
-                fontSize = UIScale.FontValue,
-                normal = { textColor = batCol }
-            };
-
-            GUI.Label(new Rect(r.x, r.y + 16f, 62f, 32f), $"{(int)(pct * 100)}%", pctStyle);
-
-            GUI.Label(new Rect(r.x + 68f, r.y, r.width - 68f, 20f), "BATTERY SHIELD", smallLabelStyle);
-
-            Rect barBg = new Rect(r.x + 68f, r.y + 24f, 224f, 24f);
-            DrawRect(barBg, new Color(0.08f, 0.12f, 0.2f, 0.9f));
-            Rect barFill = new Rect(barBg.x + 2f, barBg.y + 2f, (barBg.width - 4f) * Mathf.Clamp01(pct), barBg.height - 4f);
-            DrawRect(barFill, batCol);
-        }
-
-        private void DrawDockSpeed(Rect r, LevelManager lm)
-        {
-            float speed = 0f;
-            if (lm.Drone != null && lm.Drone.GetComponent<Rigidbody2D>() != null)
-            {
-                speed = lm.Drone.GetComponent<Rigidbody2D>().linearVelocity.magnitude;
+                Color pipColor = (p < remainingCaps) ? UIDesignSystem.ColorMagenta : new Color(0.2f, 0.25f, 0.35f, 0.5f);
+                UIDesignSystem.DrawIcon(new Rect(pipX + p * 24f, dockY + 36f, 20f, 20f), ProceduralIcon.Capsule, pipColor);
             }
 
-            GUI.Label(new Rect(r.x + 36f, r.y, r.width - 36f, 20f), "VELOCITY", smallLabelStyle);
+            Rect rCapsText = new Rect(pipX + maxCaps * 24f + 8f, dockY + 34f, 110f, 24f);
+            UIDesignSystem.DrawShadowedLabel(rCapsText, $"{remainingCaps} READY", UIDesignSystem.StyleValueBold, UIDesignSystem.ColorMagenta);
 
-            Color spdCol = (speed > 1.5f) ? redDanger : greenNeon;
+            // Divider 3
+            DrawVerticalDivider(c3X + colW - 12f, dockY + 12f, dockH - 24f);
 
-            GUIStyle spdVal = new GUIStyle(valueBoldStyle)
+            // --- COLUMN 4: NEXT TARGET ---
+            float c4X = c3X + colW;
+            Rect rC4Label = new Rect(c4X, dockY + 10f, colW - 10f, 18f);
+            UIDesignSystem.DrawShadowedLabel(rC4Label, "NEXT TARGET", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+
+            string targetName = "GATE 01";
+            ProceduralIcon targetIcon = ProceduralIcon.Gate;
+            Color targetCol = UIDesignSystem.ColorCyan;
+
+            if (lm.Rings != null && !lm.Rings.AllRelaysSynchronized)
             {
-                fontSize = UIScale.FontValue,
-                normal = { textColor = spdCol }
-            };
-            GUI.Label(new Rect(r.x + 36f, r.y + 22f, r.width - 36f, 28f), $"{speed:F1} m/s", spdVal);
+                targetName = $"GATE {lm.Rings.CurrentExpectedOrder:D2}";
+                targetIcon = ProceduralIcon.Gate;
+                targetCol = UIDesignSystem.ColorCyan;
+            }
+            else if (lm.Relay != null && lm.Relay.State == RelayState.Inactive)
+            {
+                targetName = "ENERGY RECEIVER";
+                targetIcon = ProceduralIcon.Capsule;
+                targetCol = UIDesignSystem.ColorAmberWarning;
+            }
+            else
+            {
+                targetName = "STATION DOCK";
+                targetIcon = ProceduralIcon.Dock;
+                targetCol = UIDesignSystem.ColorGreenSafe;
+            }
 
-            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = spdCol }, fontSize = 24 };
-            GUI.Label(new Rect(r.x, r.y + 12f, 32f, 36f), "◷", icon);
+            UIDesignSystem.DrawIcon(new Rect(c4X, dockY + 35f, 24f, 24f), targetIcon, targetCol);
+            Rect rTargetText = new Rect(c4X + 32f, dockY + 34f, colW - 40f, 24f);
+            UIDesignSystem.DrawShadowedLabel(rTargetText, targetName, UIDesignSystem.StyleValueBold, targetCol);
         }
 
-        private void DrawDockCapsule(Rect r, LevelManager lm)
+        private void DrawVerticalDivider(float x, float y, float h)
         {
-            CapsuleLauncher launcher = lm.Launcher;
-            int remaining = launcher != null ? launcher.RemainingCapsules : 2;
-            bool canFire = launcher != null && launcher.CanFire;
-
-            GUI.Label(new Rect(r.x + 36f, r.y, r.width - 36f, 20f), "CAPSULES", smallLabelStyle);
-
-            string statusText = remaining > 0 ? (canFire ? $"{remaining} READY" : "CHARGING") : "EMPTY (0/2)";
-            Color capCol = remaining > 0 ? magentaNeon : redDanger;
-
-            GUIStyle capVal = new GUIStyle(valueBoldStyle)
-            {
-                fontSize = 18,
-                normal = { textColor = capCol }
-            };
-            GUI.Label(new Rect(r.x + 36f, r.y + 22f, r.width - 36f, 28f), statusText, capVal);
-
-            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = capCol }, fontSize = 22 };
-            GUI.Label(new Rect(r.x, r.y + 12f, 32f, 36f), "⬢", icon);
+            Color p = GUI.color;
+            GUI.color = new Color(0f, 0.85f, 1f, 0.20f);
+            GUI.DrawTexture(new Rect(x, y, 1f, h), UIDesignSystem.TexWhite);
+            GUI.color = p;
         }
 
-        private void DrawDockRing(Rect r, LevelManager lm)
+        private void DrawAlertBanner(LevelManager lm)
         {
-            int nextRing = lm.Rings != null ? lm.Rings.CurrentExpectedOrder : 1;
-            bool allDone = lm.Rings != null && lm.Rings.AllRelaysSynchronized;
+            if (!lm.IsAlertActive()) return;
 
-            GUI.Label(new Rect(r.x + 36f, r.y, r.width - 36f, 20f), "RELAY GATE", smallLabelStyle);
+            float w = 620f;
+            float h = 48f;
+            float x = (viewWidth - w) / 2f;
+            float y = 125f;
 
-            GUIStyle ringVal = new GUIStyle(valueBoldStyle)
-            {
-                fontSize = UIScale.FontValue,
-                normal = { textColor = allDone ? greenNeon : amberNeon }
-            };
-            string text = allDone ? "SYNCHRONIZED" : $"GATE 0{nextRing}";
-            GUI.Label(new Rect(r.x + 36f, r.y + 22f, r.width - 36f, 28f), text, ringVal);
+            Color borderColor = lm.IsCurrentAlertWarning ? UIDesignSystem.ColorAmberWarning : UIDesignSystem.ColorGreenSafe;
+            Color bgColor = lm.IsCurrentAlertWarning ? new Color(0.2f, 0.1f, 0.02f, 0.95f) : new Color(0.02f, 0.15f, 0.08f, 0.95f);
 
-            GUIStyle icon = new GUIStyle(iconStyle) { normal = { textColor = amberNeon }, fontSize = 22 };
-            GUI.Label(new Rect(r.x, r.y + 12f, 32f, 36f), "◎", icon);
+            GUI.color = bgColor;
+            GUI.DrawTexture(new Rect(x, y, w, h), UIDesignSystem.TexWhite);
+            GUI.color = borderColor;
+            GUI.DrawTexture(new Rect(x, y, w, 2f), UIDesignSystem.TexWhite);
+            GUI.DrawTexture(new Rect(x, y + h - 2f, w, 2f), UIDesignSystem.TexWhite);
+            GUI.color = Color.white;
+
+            UIDesignSystem.DrawShadowedLabel(new Rect(x, y + 10f, w, 28f), lm.CurrentAlertMessage, UIDesignSystem.StyleAlertBanner, borderColor);
         }
 
         // ==========================================
-        // 4. CONTEXTUAL POPUP NOTIFICATIONS
+        // 6. MODALS: RESULTS, FAILURE, PAUSE, SETTINGS
         // ==========================================
-        private void DrawContextualPopups(LevelManager lm)
+        private void DrawResultsModal(LevelManager lm)
         {
-            float popW = 380f;
-            float popH = 76f;
-            float popX = viewWidth - popW - 24f;
-            float popY = 130f;
+            float modalW = 560f;
+            float modalH = 540f;
+            float modalX = (viewWidth - modalW) / 2f;
+            float modalY = (viewHeight - modalH) / 2f;
 
-            // Global HUD Alert from LevelManager
-            if (lm.IsAlertActive())
+            Rect r = new Rect(modalX, modalY, modalW, modalH);
+            GUI.Box(r, GUIContent.none, UIDesignSystem.StylePanelSelected);
+
+            float padX = modalX + 36f;
+            float padW = modalW - 72f;
+
+            // Title
+            Rect rTitle = new Rect(padX, modalY + 24f, padW, 36f);
+            UIDesignSystem.DrawShadowedLabel(rTitle, "MISSION ACCOMPLISHED", UIDesignSystem.StyleModalTitle, UIDesignSystem.ColorGreenSafe);
+
+            // Subtitle
+            string sub = $"SECTOR {lm.LevelNumber:D2}: {lm.LevelTitle.ToUpper()} RESTORED";
+            Rect rSub = new Rect(padX, modalY + 62f, padW, 22f);
+            UIDesignSystem.DrawShadowedLabel(rSub, sub, UIDesignSystem.StyleModalSubtitle, UIDesignSystem.ColorCyan);
+
+            ScoreManager sm = ScoreManager.Instance;
+            int total = sm != null ? sm.TotalScore : 0;
+
+            // Animated count-up for total score
+            if (resultAnimationStartTime < 0) resultAnimationStartTime = Time.unscaledTime;
+            float elapsedAnim = Time.unscaledTime - resultAnimationStartTime;
+            animatedResultScore = Mathf.MoveTowards(animatedResultScore, total, Mathf.Max(60f, (total - animatedResultScore) * 5f) * Time.unscaledDeltaTime);
+
+            // 2-Column Stats Table
+            float tableY = modalY + 100f;
+            float rowH = 28f;
+
+            DrawTableRow("COMPULSORY GATES", $"{lm.Rings?.ActivatedRelaysCount ?? 0} / {lm.Rings?.TotalRelays ?? 0}", padX, tableY + rowH * 0, padW);
+            DrawTableRow("TIME ELAPSED", $"{lm.ElapsedTime:F1}s", padX, tableY + rowH * 1, padW);
+            DrawTableRow("TIME EFFICIENCY BONUS", $"+{sm?.TimeBonus ?? 0} PTS", padX, tableY + rowH * 2, padW);
+            DrawTableRow("CAPSULE RESERVES REMAINING", $"+{sm?.CapsuleBonus ?? 0} PTS", padX, tableY + rowH * 3, padW);
+            DrawTableRow("COMPLETION BONUS", $"+{sm?.CompletionBonus ?? 0} PTS", padX, tableY + rowH * 4, padW);
+            string diffBadge = $"{SettingsManager.GetDifficultyShortBadge(lm.Difficulty)} (x{SettingsManager.GetScoreMultiplier():F1})";
+            DrawTableRow("DIFFICULTY MULTIPLIER", diffBadge, padX, tableY + rowH * 5, padW);
+
+            // Total Score Highlight Box
+            float totalBoxY = tableY + rowH * 6 + 10f;
+            Rect rTotalBox = new Rect(padX, totalBoxY, padW, 64f);
+            GUI.Box(rTotalBox, GUIContent.none, UIDesignSystem.StylePanel);
+
+            Rect rTotalLbl = new Rect(padX + 16f, totalBoxY + 18f, 160f, 28f);
+            UIDesignSystem.DrawShadowedLabel(rTotalLbl, "TOTAL SCORE", UIDesignSystem.StyleHeader, UIDesignSystem.ColorAmberWarning);
+
+            Rect rTotalVal = new Rect(padX + padW - 220f, totalBoxY + 14f, 204f, 36f);
+            UIDesignSystem.DrawShadowedLabel(rTotalVal, $"{(int)animatedResultScore:N0}", UIDesignSystem.StyleTotalScoreValue, UIDesignSystem.ColorGreenSafe);
+
+            // Best score line
+            string bestKey = $"best_{lm.LevelNumber}_{(int)lm.Difficulty}";
+            int bestScore = PlayerPrefs.GetInt(bestKey, total);
+            Rect rBest = new Rect(padX, totalBoxY + 70f, padW, 20f);
+            UIDesignSystem.DrawShadowedLabel(rBest, $"PERSONAL BEST ({SettingsManager.GetDifficultyShortBadge(lm.Difficulty)}): {bestScore:N0} PTS", UIDesignSystem.StyleBestScoreText, UIDesignSystem.ColorTextMuted);
+
+            // Buttons (>= 48px height)
+            float btnY = modalY + modalH - 74f;
+            float btnW = (padW - 16f) / 2f;
+
+            if (GUI.Button(new Rect(padX, btnY, btnW, 50f), "RETRY [R]", UIDesignSystem.StyleButtonSecondary))
             {
-                Color c = lm.IsCurrentAlertWarning ? redDanger : cyanNeon;
-                DrawAlertCard(new Rect(popX, popY, popW, popH), c, lm.IsCurrentAlertWarning ? "⚠ ATTENTION" : "ℹ MISSION UPDATE", lm.CurrentAlertMessage);
-                popY += popH + 10f;
+                lm.RestartLevel();
             }
 
-            // Low Battery Warning
-            if (lm.Battery != null && lm.Battery.IsLowBattery && lm.Battery.CurrentBattery > 0f)
+            int maxSectors = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 10;
+            string nextLabel = lm.LevelNumber >= maxSectors ? "MAIN MENU  ›" : "NEXT MISSION  ›";
+            if (GUI.Button(new Rect(padX + btnW + 16f, btnY, btnW, 50f), nextLabel, UIDesignSystem.StyleButtonPrimary))
             {
-                DrawAlertCard(new Rect(popX, popY, popW, popH), magentaNeon, "⚡ LOW BATTERY", $"{(int)lm.Battery.CurrentBattery}% power reserves remaining");
-                popY += popH + 10f;
+                lm.AdvanceToNextLevel();
             }
         }
 
-        private void DrawAlertCard(Rect r, Color accent, string title, string detail)
+        private void DrawFailureModal(LevelManager lm)
         {
-            GUIStyle card = new GUIStyle(panelStyle);
-            card.normal.background = MakeBorderedTex(32, 32, new Color(0.05f, 0.08f, 0.14f, 0.95f), accent, 2);
-            GUI.Box(r, GUIContent.none, card);
+            float modalW = 540f;
+            float modalH = 460f;
+            float modalX = (viewWidth - modalW) / 2f;
+            float modalY = (viewHeight - modalH) / 2f;
 
-            GUIStyle hStyle = new GUIStyle(cardHeaderStyle) { normal = { textColor = accent } };
-            GUI.Label(new Rect(r.x + 16f, r.y + 10f, r.width - 32f, 24f), title, hStyle);
-            GUI.Label(new Rect(r.x + 16f, r.y + 36f, r.width - 32f, 36f), detail, cardBodyStyle);
-        }
+            Rect r = new Rect(modalX, modalY, modalW, modalH);
+            GUI.Box(r, GUIContent.none, UIDesignSystem.StylePanelSelected);
 
-        // ==========================================
-        // 5. PAUSE MENU & SETTINGS MODALS
-        // ==========================================
-        private void DrawPauseModal()
-        {
-            DrawModalBackdrop();
+            float padX = modalX + 36f;
+            float padW = modalW - 72f;
 
-            float w = 440f;
-            float h = 380f;
-            Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
+            Rect rTitle = new Rect(padX, modalY + 28f, padW, 36f);
+            UIDesignSystem.DrawShadowedLabel(rTitle, "MISSION FAILED", UIDesignSystem.StyleModalTitle, UIDesignSystem.ColorRedCritical);
 
-            GUI.Box(modalRect, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(modalRect.x + 32f, modalRect.y + 24f, modalRect.width - 64f, modalRect.height - 48f));
+            Rect rReason = new Rect(padX, modalY + 74f, padW, 26f);
+            UIDesignSystem.DrawShadowedLabel(rReason, lm.FailureReason, UIDesignSystem.StyleFailReason, UIDesignSystem.ColorAmberWarning);
 
-            GUILayout.Label("MISSION PAUSED", modalTitleStyle);
-            GUILayout.Space(16);
+            float tableY = modalY + 125f;
+            float rowH = 32f;
+            DrawTableRow("MISSION", $"SECTOR {lm.LevelNumber:D2}: {lm.LevelTitle.ToUpper()}", padX, tableY + rowH * 0, padW);
+            DrawTableRow("DIFFICULTY", SettingsManager.GetDifficultyName(lm.Difficulty), padX, tableY + rowH * 1, padW);
+            DrawTableRow("GATES SYNCHRONIZED", $"{lm.Rings?.ActivatedRelaysCount ?? 0} / {lm.Rings?.TotalRelays ?? 0}", padX, tableY + rowH * 2, padW);
+            DrawTableRow("BATTERY SHIELD REMAINING", $"{lm.Battery?.BatteryPercentage * 100f ?? 0f:F0}%", padX, tableY + rowH * 3, padW);
+            DrawTableRow("CAPSULES REMAINING", $"{lm.Launcher?.RemainingCapsules ?? 0}", padX, tableY + rowH * 4, padW);
 
-            if (GUILayout.Button("RESUME", buttonSciFiStyle, GUILayout.Height(48)))
+            float btnY = modalY + modalH - 74f;
+            float btnW = (padW - 16f) / 2f;
+
+            if (GUI.Button(new Rect(padX, btnY, btnW, 50f), "RETRY SECTOR [R]", UIDesignSystem.StyleButtonPrimary))
             {
-                AudioManager.Instance?.PlayUISound();
-                TogglePause();
+                lm.RestartLevel();
             }
 
-            GUILayout.Space(10);
-
-            if (GUILayout.Button("RESTART MISSION", buttonSciFiStyle, GUILayout.Height(48)))
+            if (GUI.Button(new Rect(padX + btnW + 16f, btnY, btnW, 50f), "MAIN MENU", UIDesignSystem.StyleButtonSecondary))
             {
-                AudioManager.Instance?.PlayUISound();
-                Time.timeScale = 1f;
-                LevelManager.Instance?.RestartLevel();
-            }
-
-            GUILayout.Space(10);
-
-            if (GUILayout.Button("SETTINGS", buttonSciFiStyle, GUILayout.Height(48)))
-            {
-                AudioManager.Instance?.PlayUISound();
-                showSettings = true;
-            }
-
-            GUILayout.Space(10);
-
-            if (GUILayout.Button("MAIN MENU", buttonSciFiStyle, GUILayout.Height(48)))
-            {
-                AudioManager.Instance?.PlayUISound();
                 Time.timeScale = 1f;
                 SceneManager.LoadScene("MainMenu");
             }
+        }
 
-            GUILayout.EndArea();
+        private void DrawPauseModal(LevelManager lm)
+        {
+            float modalW = 480f;
+            float modalH = 460f;
+            float modalX = (viewWidth - modalW) / 2f;
+            float modalY = (viewHeight - modalH) / 2f;
+
+            Rect r = new Rect(modalX, modalY, modalW, modalH);
+            GUI.Box(r, GUIContent.none, UIDesignSystem.StylePanelSelected);
+
+            float padX = modalX + 36f;
+            float padW = modalW - 72f;
+
+            Rect rTitle = new Rect(padX, modalY + 28f, padW, 36f);
+            UIDesignSystem.DrawShadowedLabel(rTitle, "SYSTEM PAUSED", UIDesignSystem.StyleModalTitle, UIDesignSystem.ColorCyan);
+
+            Rect rSub = new Rect(padX, modalY + 68f, padW, 22f);
+            UIDesignSystem.DrawShadowedLabel(rSub, $"MISSION {lm.LevelNumber:D2}: {lm.LevelTitle.ToUpper()}", UIDesignSystem.StyleModalSubtitle, UIDesignSystem.ColorTextBright);
+
+            // Best score line
+            string bestKey = $"best_{lm.LevelNumber}_{(int)lm.Difficulty}";
+            int bestScore = PlayerPrefs.GetInt(bestKey, 0);
+            Rect rBest = new Rect(padX, modalY + 96f, padW, 20f);
+            UIDesignSystem.DrawShadowedLabel(rBest, $"DIFFICULTY: {SettingsManager.GetDifficultyShortBadge(lm.Difficulty)}  •  BEST: {bestScore:N0} PTS", UIDesignSystem.StyleBestScoreText, UIDesignSystem.ColorTextMuted);
+
+            float btnY = modalY + 140f;
+            float btnH = 50f;
+            float gap = 14f;
+
+            if (GUI.Button(new Rect(padX, btnY, padW, btnH), "RESUME FLIGHT  ›", UIDesignSystem.StyleButtonPrimary))
+            {
+                TogglePause();
+            }
+
+            if (GUI.Button(new Rect(padX, btnY + (btnH + gap) * 1, padW, btnH), "RESTART SECTOR [R]", UIDesignSystem.StyleButtonSecondary))
+            {
+                TogglePause();
+                lm.RestartLevel();
+            }
+
+            if (GUI.Button(new Rect(padX, btnY + (btnH + gap) * 2, padW, btnH), "SYSTEM SETTINGS", UIDesignSystem.StyleButtonSecondary))
+            {
+                showSettings = true;
+                AudioManager.Instance?.PlayButtonClick();
+            }
+
+            if (GUI.Button(new Rect(padX, btnY + (btnH + gap) * 3, padW, btnH), "ABORT TO MAIN MENU", UIDesignSystem.StyleButtonSecondary))
+            {
+                Time.timeScale = 1f;
+                SceneManager.LoadScene("MainMenu");
+            }
         }
 
         private void DrawSettingsModal()
         {
-            DrawModalBackdrop();
+            float modalW = 540f;
+            float modalH = 520f;
+            float modalX = (viewWidth - modalW) / 2f;
+            float modalY = (viewHeight - modalH) / 2f;
 
-            float w = 560f;
-            float h = 560f;
-            Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
+            Rect r = new Rect(modalX, modalY, modalW, modalH);
+            GUI.Box(r, GUIContent.none, UIDesignSystem.StylePanelSelected);
 
-            GUI.Box(modalRect, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(modalRect.x + 32f, modalRect.y + 20f, modalRect.width - 64f, modalRect.height - 40f));
+            float padX = modalX + 36f;
+            float padW = modalW - 72f;
 
-            GUILayout.Label("SETTINGS", modalTitleStyle);
-            GUILayout.Space(12);
+            Rect rTitle = new Rect(padX, modalY + 24f, padW, 36f);
+            UIDesignSystem.DrawShadowedLabel(rTitle, "SYSTEM SETTINGS", UIDesignSystem.StyleModalTitle, UIDesignSystem.ColorCyan);
 
-            // AUDIO SECTION
-            GUILayout.Label($"MASTER VOLUME: {(int)(SettingsManager.MasterVolume * 100)}%", cardHeaderStyle);
-            float newMaster = GUILayout.HorizontalSlider(SettingsManager.MasterVolume, 0f, 1f);
+            float curY = modalY + 70f;
+
+            // Audio sliders
+            UIDesignSystem.DrawShadowedLabel(new Rect(padX, curY, padW, 20f), $"MASTER VOLUME  //  {(int)(SettingsManager.MasterVolume * 100)}%", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+            curY += 24f;
+            float newMaster = GUI.HorizontalSlider(new Rect(padX, curY, padW, 20f), SettingsManager.MasterVolume, 0f, 1f);
             if (Mathf.Abs(newMaster - SettingsManager.MasterVolume) > 0.01f) SettingsManager.SetMasterVolume(newMaster);
+            curY += 28f;
 
-            GUILayout.Space(6);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"SFX: {(int)(SettingsManager.SFXVolume * 100)}%", cardBodyStyle, GUILayout.Width(130));
-            float newSfx = GUILayout.HorizontalSlider(SettingsManager.SFXVolume, 0f, 1f);
+            UIDesignSystem.DrawShadowedLabel(new Rect(padX, curY, padW, 20f), $"SFX VOLUME  //  {(int)(SettingsManager.SFXVolume * 100)}%", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+            curY += 24f;
+            float newSfx = GUI.HorizontalSlider(new Rect(padX, curY, padW, 20f), SettingsManager.SFXVolume, 0f, 1f);
             if (Mathf.Abs(newSfx - SettingsManager.SFXVolume) > 0.01f) SettingsManager.SetSFXVolume(newSfx);
-            GUILayout.EndHorizontal();
+            curY += 28f;
 
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"MUSIC: {(int)(SettingsManager.MusicVolume * 100)}%", cardBodyStyle, GUILayout.Width(130));
-            float newMusic = GUILayout.HorizontalSlider(SettingsManager.MusicVolume, 0f, 1f);
+            UIDesignSystem.DrawShadowedLabel(new Rect(padX, curY, padW, 20f), $"MUSIC VOLUME  //  {(int)(SettingsManager.MusicVolume * 100)}%", UIDesignSystem.StyleLabelMuted, UIDesignSystem.ColorTextMuted);
+            curY += 24f;
+            float newMusic = GUI.HorizontalSlider(new Rect(padX, curY, padW, 20f), SettingsManager.MusicVolume, 0f, 1f);
             if (Mathf.Abs(newMusic - SettingsManager.MusicVolume) > 0.01f) SettingsManager.SetMusicVolume(newMusic);
-            GUILayout.EndHorizontal();
+            curY += 32f;
 
-            GUILayout.Space(8);
-            GUILayout.BeginHorizontal();
-            bool muteToggle = GUILayout.Toggle(SettingsManager.IsMuted, " MUTE ALL AUDIO", GUI.skin.toggle);
-            if (muteToggle != SettingsManager.IsMuted) SettingsManager.SetMuted(muteToggle);
+            // Toggles
+            bool mute = GUI.Toggle(new Rect(padX, curY, 200f, 24f), SettingsManager.IsMuted, " MUTE ALL AUDIO");
+            if (mute != SettingsManager.IsMuted) SettingsManager.SetMuted(mute);
 
-            bool warnToggle = GUILayout.Toggle(SettingsManager.CountdownAudioEnabled, " COUNTDOWN AUDIO", GUI.skin.toggle);
-            if (warnToggle != SettingsManager.CountdownAudioEnabled) SettingsManager.SetCountdownAudio(warnToggle);
-            GUILayout.EndHorizontal();
+            bool warn = GUI.Toggle(new Rect(padX + 220f, curY, 220f, 24f), SettingsManager.CountdownAudioEnabled, " COUNTDOWN AUDIO");
+            if (warn != SettingsManager.CountdownAudioEnabled) SettingsManager.SetCountdownAudio(warn);
+            curY += 32f;
 
-            GUILayout.Space(12);
+            bool shake = GUI.Toggle(new Rect(padX, curY, 200f, 24f), SettingsManager.ScreenShakeEnabled, " SCREEN SHAKE");
+            if (shake != SettingsManager.ScreenShakeEnabled) SettingsManager.SetScreenShake(shake);
 
-            // GAMEPLAY & DISPLAY
-            GUILayout.BeginHorizontal();
-            bool shakeToggle = GUILayout.Toggle(SettingsManager.ScreenShakeEnabled, " SCREEN SHAKE", GUI.skin.toggle);
-            if (shakeToggle != SettingsManager.ScreenShakeEnabled) SettingsManager.SetScreenShake(shakeToggle);
+            bool vfx = GUI.Toggle(new Rect(padX + 220f, curY, 220f, 24f), SettingsManager.VisualEffectsEnabled, " VISUAL EFFECTS");
+            if (vfx != SettingsManager.VisualEffectsEnabled) SettingsManager.SetVisualEffects(vfx);
+            curY += 36f;
 
-            bool vfxToggle = GUILayout.Toggle(SettingsManager.VisualEffectsEnabled, " VISUAL EFFECTS", GUI.skin.toggle);
-            if (vfxToggle != SettingsManager.VisualEffectsEnabled) SettingsManager.SetVisualEffects(vfxToggle);
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(8);
-            if (GUILayout.Button(Screen.fullScreen ? "SWITCH TO WINDOWED" : "SWITCH TO FULLSCREEN", buttonSciFiStyle, GUILayout.Height(36)))
+            // Fullscreen toggle
+            if (GUI.Button(new Rect(padX, curY, padW, 40f), Screen.fullScreen ? "SWITCH TO WINDOWED" : "SWITCH TO FULLSCREEN", UIDesignSystem.StyleButtonSecondary))
             {
                 SettingsManager.ToggleFullscreen();
             }
+            curY += 52f;
 
-            GUILayout.Space(10);
-            GUILayout.Label($"DIFFICULTY LEVEL: {SettingsManager.CurrentDifficulty.ToString().ToUpper()}", cardHeaderStyle);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("EASY", SettingsManager.CurrentDifficulty == GameDifficulty.Easy ? pauseBtnStyle : buttonSciFiStyle, GUILayout.Height(36)))
+            // Back button
+            if (GUI.Button(new Rect(padX, modalY + modalH - 64f, padW, 48f), "‹  BACK TO PAUSE MENU", UIDesignSystem.StyleButtonPrimary))
             {
-                SettingsManager.SetDifficulty(GameDifficulty.Easy);
-            }
-            GUILayout.Space(6);
-            if (GUILayout.Button("MEDIUM", SettingsManager.CurrentDifficulty == GameDifficulty.Medium ? pauseBtnStyle : buttonSciFiStyle, GUILayout.Height(36)))
-            {
-                SettingsManager.SetDifficulty(GameDifficulty.Medium);
-            }
-            GUILayout.Space(6);
-            if (GUILayout.Button("HARD (1.5x PTS)", SettingsManager.CurrentDifficulty == GameDifficulty.Hard ? pauseBtnStyle : buttonSciFiStyle, GUILayout.Height(36)))
-            {
-                SettingsManager.SetDifficulty(GameDifficulty.Hard);
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(10);
-            GUILayout.Label("CONTROLS: [WASD] Thrust  |  [Mouse] Aim  |  [Space/LMB] Launch Capsule  |  [R] Quick Restart", smallLabelStyle);
-
-            GUILayout.FlexibleSpace();
-
-            if (GUILayout.Button("‹ BACK", buttonSciFiStyle, GUILayout.Height(46)))
-            {
-                AudioManager.Instance?.PlayUISound();
                 showSettings = false;
+                AudioManager.Instance?.PlayButtonClick();
             }
-
-            GUILayout.EndArea();
         }
 
-        // ==========================================
-        // 6. MISSION RESULTS SCREEN (VICTORY)
-        // Shows:
-        // - Total score & breakdown
-        // - Relays activated / required
-        // - Capsules used and remaining
-        // - Mission completion time
-        // - NEXT MISSION and RETRY options
-        // ==========================================
-        private void DrawResultsModal(LevelManager lm)
+        private void DrawTableRow(string label, string val, float x, float y, float w)
         {
-            DrawModalBackdrop();
-
-            float w = 580f;
-            float h = 540f;
-            Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
-
-            GUI.Box(modalRect, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(modalRect.x + 36f, modalRect.y + 24f, modalRect.width - 72f, modalRect.height - 48f));
-
-            GUIStyle winTitle = new GUIStyle(modalTitleStyle) { normal = { textColor = greenNeon } };
-            GUILayout.Label("MISSION ACCOMPLISHED!", winTitle);
-            GUILayout.Label($"Sector {lm.LevelNumber:D2} : {lm.LevelTitle} fully restored.", modalBodyStyle);
-
-            GUILayout.Space(18);
-
-            ScoreManager sm = ScoreManager.Instance;
-            int totalScore = sm != null ? sm.TotalScore : 0;
-            int baseRelay = sm != null ? sm.BaseRelayScore : 0;
-            int compBonus = sm != null ? sm.CompletionBonus : 0;
-            int timeBonus = sm != null ? sm.TimeBonus : 0;
-            int capBonus = sm != null ? sm.CapsuleBonus : 0;
-
-            int activeRelays = lm.Rings != null ? lm.Rings.ActivatedRelaysCount : 0;
-            int totalRelays = lm.Rings != null ? lm.Rings.TotalRelays : 0;
-
-            CapsuleLauncher launcher = lm.Launcher;
-            int capsRemaining = launcher != null ? launcher.RemainingCapsules : 0;
-            int capsUsed = launcher != null ? launcher.CapsulesUsed : 0;
-
-            int timeElapsedSec = Mathf.FloorToInt(lm.ElapsedTime);
-            int eMins = timeElapsedSec / 60;
-            int eSecs = timeElapsedSec % 60;
-
-            GUIStyle statHeader = new GUIStyle(cardHeaderStyle) { fontSize = 17, normal = { textColor = cyanNeon } };
-            GUIStyle statBody = new GUIStyle(cardBodyStyle) { fontSize = 16 };
-
-            // Stat Table
-            GUILayout.Label($"• RELAYS SYNCHRONIZED: {activeRelays}/{totalRelays} (+{baseRelay} pts)", statBody);
-            GUILayout.Label($"• TIME ELAPSED: {eMins:D2}:{eSecs:D2} (Time Bonus: +{timeBonus} pts)", statBody);
-            GUILayout.Label($"• CAPSULES USED: {capsUsed}  |  REMAINING: {capsRemaining} (+{capBonus} pts)", statBody);
-            GUILayout.Label($"• MISSION COMPLETION BONUS: +{compBonus} pts", statBody);
-            int diffBonus = sm != null ? sm.DifficultyBonus : 0;
-            if (diffBonus > 0)
-            {
-                GUILayout.Label($"• DIFFICULTY BONUS (HARD 1.5x): +{diffBonus} pts", statBody);
-            }
-
-            GUILayout.Space(14);
-
-            GUIStyle bigTotal = new GUIStyle(valueBoldStyle)
-            {
-                fontSize = 28,
-                normal = { textColor = amberNeon },
-                alignment = TextAnchor.MiddleCenter
-            };
-            GUILayout.Label($"TOTAL SCORE: {totalScore}", bigTotal);
-
-            GUILayout.Space(20);
-
-            int maxSectors = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;
-            string advanceText = (lm.LevelNumber < maxSectors) ? "NEXT MISSION  ›" : "GALACTIC VICTORY";
-
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button(advanceText, buttonSciFiStyle, GUILayout.Height(50)))
-            {
-                AudioManager.Instance?.PlayUISound();
-                Time.timeScale = 1f;
-                lm.AdvanceToNextLevel();
-            }
-
-            GUILayout.Space(12);
-
-            if (GUILayout.Button("RETRY MISSION", buttonSciFiStyle, GUILayout.Height(50)))
-            {
-                AudioManager.Instance?.PlayUISound();
-                Time.timeScale = 1f;
-                lm.RestartLevel();
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(8);
-
-            if (GUILayout.Button("MAIN MENU", buttonSciFiStyle, GUILayout.Height(42)))
-            {
-                AudioManager.Instance?.PlayUISound();
-                Time.timeScale = 1f;
-                SceneManager.LoadScene("MainMenu");
-            }
-
-            GUILayout.EndArea();
-        }
-
-        // ==========================================
-        // 7. FAILURE MODAL
-        // ==========================================
-        private void DrawFailureModal(LevelManager lm)
-        {
-            DrawModalBackdrop();
-
-            float w = 500f;
-            float h = 380f;
-            Rect modalRect = new Rect((viewWidth - w) / 2f, (viewHeight - h) / 2f, w, h);
-
-            GUI.Box(modalRect, GUIContent.none, panelStyle);
-            GUILayout.BeginArea(new Rect(modalRect.x + 32f, modalRect.y + 24f, modalRect.width - 64f, modalRect.height - 48f));
-
-            GUIStyle failTitle = new GUIStyle(modalTitleStyle) { normal = { textColor = redDanger } };
-            GUILayout.Label("MISSION FAILED", failTitle);
-            GUILayout.Space(12);
-
-            string failText = string.IsNullOrEmpty(lm.FailureReason) ? "Ship destroyed or power exhausted." : lm.FailureReason.ToUpper();
-            GUIStyle failReasonStyle = new GUIStyle(modalBodyStyle)
-            {
-                fontSize = 20,
-                normal = { textColor = Color.white }
-            };
-            GUILayout.Label(failText, failReasonStyle);
-
-            GUILayout.Space(24);
-
-            if (GUILayout.Button("RETRY [R]", buttonSciFiStyle, GUILayout.Height(50)))
-            {
-                AudioManager.Instance?.PlayUISound();
-                Time.timeScale = 1f;
-                lm.RestartLevel();
-            }
-
-            GUILayout.Space(12);
-
-            if (GUILayout.Button("MAIN MENU", buttonSciFiStyle, GUILayout.Height(46)))
-            {
-                AudioManager.Instance?.PlayUISound();
-                Time.timeScale = 1f;
-                SceneManager.LoadScene("MainMenu");
-            }
-
-            GUILayout.EndArea();
-        }
-
-        private void DrawModalBackdrop()
-        {
-            DrawRect(new Rect(0, 0, viewWidth, viewHeight), new Color(0f, 0.02f, 0.06f, 0.88f));
-        }
-
-        private void DrawRect(Rect r, Color c)
-        {
-            Color prev = GUI.color;
-            GUI.color = c;
-            GUI.DrawTexture(r, whiteTex);
-            GUI.color = prev;
-        }
-
-        private Texture2D MakeTex(int width, int height, Color col)
-        {
-            Color[] pix = new Color[width * height];
-            for (int i = 0; i < pix.Length; i++) pix[i] = col;
-            Texture2D result = new Texture2D(width, height);
-            result.SetPixels(pix);
-            result.Apply();
-            return result;
-        }
-
-        private Texture2D MakeBorderedTex(int width, int height, Color fill, Color border, int borderWidth)
-        {
-            Texture2D result = new Texture2D(width, height);
-            Color[] pix = new Color[width * height];
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    bool isBorder = (x < borderWidth || x >= width - borderWidth || y < borderWidth || y >= height - borderWidth);
-                    pix[y * width + x] = isBorder ? border : fill;
-                }
-            }
-            result.SetPixels(pix);
-            result.Apply();
-            return result;
+            Rect rLabel = new Rect(x, y, w * 0.55f, 24f);
+            Rect rVal = new Rect(x + w * 0.55f, y, w * 0.45f, 24f);
+            UIDesignSystem.DrawShadowedLabel(rLabel, label, UIDesignSystem.StyleTableRowLabel, UIDesignSystem.ColorTextMuted);
+            UIDesignSystem.DrawShadowedLabel(rVal, val, UIDesignSystem.StyleTableRowValue, UIDesignSystem.ColorTextBright);
         }
     }
 }

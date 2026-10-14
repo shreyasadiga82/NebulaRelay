@@ -17,17 +17,18 @@ namespace NebulaRelay.Core
     }
 
     /// <summary>
-    /// LevelManager coordinates all mission objectives, 120-second countdown timer,
+    /// LevelManager coordinates all mission objectives, 300-second (5:00) countdown timer,
     /// compulsory relay checks, scoring, and one-time win/fail state transitions.
+    /// Supports 10 missions and difficulty persistence.
     /// </summary>
     public class LevelManager : MonoBehaviour
     {
         public static LevelManager Instance { get; private set; }
 
-        public const float MissionDurationSeconds = 120.0f; // 2 minutes
+        public const float MissionDurationSeconds = 300.0f; // 5 minutes standard on Normal
 
         [Header("Level Information")]
-        [Tooltip("The level index (1, 2, 3, 4, 5).")]
+        [Tooltip("The level index (1 to 10).")]
         [SerializeField] private int levelNumber = 1;
 
         [Tooltip("Display name for the level.")]
@@ -42,11 +43,11 @@ namespace NebulaRelay.Core
 
         [Header("Flight Corridor Boundaries")]
         [Tooltip("Corridor start X coordinate.")]
-        [SerializeField] private float minCorridorX = -18f;
+        [SerializeField] private float minCorridorX = -155f;
         [Tooltip("Corridor end X coordinate (Relay station location).")]
-        [SerializeField] private float maxCorridorX = 18f;
+        [SerializeField] private float maxCorridorX = 155f;
         [Tooltip("Safety margin beyond start/end.")]
-        [SerializeField] private float marginX = 2.0f;
+        [SerializeField] private float marginX = 4.0f;
         [Tooltip("Half-height of corridor.")]
         [SerializeField] private float corridorMarginY = 6.5f;
 
@@ -59,8 +60,8 @@ namespace NebulaRelay.Core
         public LevelState State { get; private set; } = LevelState.InFlight;
         public int LevelNumber => levelNumber;
         public string LevelTitle => levelTitle;
-        public float RemainingTime { get; private set; } = 120.0f;
-        public float MissionDuration => SettingsManager.GetMissionDuration();
+        public float RemainingTime { get; private set; } = 300.0f;
+        public float MissionDuration => SettingsManager.GetMissionDuration(SettingsManager.CurrentDifficulty, levelNumber);
         public float ElapsedTime => Mathf.Max(0f, MissionDuration - RemainingTime);
         public GameDifficulty Difficulty => SettingsManager.CurrentDifficulty;
 
@@ -80,6 +81,8 @@ namespace NebulaRelay.Core
         public string FailureReason { get; private set; } = "";
 
         // Audio countdown state
+        private bool warning60sPlayed = false;
+        private bool warning30sPlayed = false;
         private bool warning10sPlayed = false;
         private int lastSecondsWarningPlayed = -1;
 
@@ -113,11 +116,17 @@ namespace NebulaRelay.Core
         {
             SetHUDMessage($"MISSION {levelNumber:D2}: {levelTitle.ToUpper()}", 3.0f, false);
             AudioManager.Instance?.PlayMissionStartupSound();
+
+            // Spawn deterministic obstacles for current difficulty if scene hierarchy does not already contain baked obstacles
+            if (GameObject.Find("Obstacles") == null && transform.Find("SpawnedObstacles") == null && GameObject.Find("SpawnedObstacles") == null)
+            {
+                MissionObstacleSpawner.SpawnObstacles(levelNumber, Difficulty, transform);
+            }
         }
 
         private void Update()
         {
-            // Update 120-second countdown timer during flight
+            // Update countdown timer during flight
             if (State == LevelState.InFlight && Time.timeScale > 0.001f)
             {
                 RemainingTime = Mathf.Max(0f, RemainingTime - Time.deltaTime);
@@ -153,7 +162,19 @@ namespace NebulaRelay.Core
         {
             int wholeSec = Mathf.CeilToInt(RemainingTime);
 
-            if (wholeSec <= 10 && !warning10sPlayed && wholeSec > 5)
+            if (wholeSec <= 60 && !warning60sPlayed && wholeSec > 30)
+            {
+                warning60sPlayed = true;
+                AudioManager.Instance?.PlayCountdownWarningSound(false);
+                SetHUDMessage("TIME WARNING: 60 SECONDS REMAINING", 2.5f, true);
+            }
+            else if (wholeSec <= 30 && !warning30sPlayed && wholeSec > 10)
+            {
+                warning30sPlayed = true;
+                AudioManager.Instance?.PlayCountdownWarningSound(true);
+                SetHUDMessage("CRITICAL TIME: 30 SECONDS REMAINING", 2.5f, true);
+            }
+            else if (wholeSec <= 10 && !warning10sPlayed && wholeSec > 5)
             {
                 warning10sPlayed = true;
                 AudioManager.Instance?.PlayCountdownWarningSound(false);
@@ -205,8 +226,22 @@ namespace NebulaRelay.Core
             int capsRemaining = launcher != null ? launcher.RemainingCapsules : 0;
             ScoreManager.Instance?.FinalizeMissionScore(RemainingTime, capsRemaining);
 
+            // Record progress and best score in PlayerPrefs keyed by both mission and difficulty
+            string doneKey = $"done_{levelNumber}_{(int)Difficulty}";
+            string bestKey = $"best_{levelNumber}_{(int)Difficulty}";
+            PlayerPrefs.SetInt(doneKey, 1);
+            int currentScore = ScoreManager.Instance != null ? ScoreManager.Instance.TotalScore : 0;
+            int prevBest = PlayerPrefs.GetInt(bestKey, 0);
+            if (currentScore > prevBest)
+            {
+                PlayerPrefs.SetInt(bestKey, currentScore);
+            }
+            PlayerPrefs.Save();
+
             AudioManager.Instance?.PlayMissionCompleteSound();
-            SetHUDMessage($"SECTOR {levelNumber:D2} RESTORED! MISSION ACCOMPLISHED!", 10.0f, false);
+            SetHUDMessage(levelNumber >= 10 
+                ? "MISSION ACCOMPLISHED! GALACTIC NETWORK FULLY RESTORED!" 
+                : $"SECTOR {levelNumber:D2} RESTORED! MISSION ACCOMPLISHED!", 10.0f, false);
 
             if (GameManager.Instance != null)
             {
@@ -253,7 +288,7 @@ namespace NebulaRelay.Core
         public void AdvanceToNextLevel()
         {
             Time.timeScale = 1f;
-            int maxSectors = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 5;
+            int maxSectors = GameManager.Instance != null ? GameManager.Instance.MaxRelays : 10;
 
             if (levelNumber < maxSectors)
             {
@@ -287,7 +322,7 @@ namespace NebulaRelay.Core
         {
             if (State == LevelState.Completed)
             {
-                return levelNumber >= 5 
+                return levelNumber >= 10 
                     ? "MISSION ACCOMPLISHED! GALACTIC NETWORK FULLY RESTORED!" 
                     : "RELAY SYNCHRONIZED! Press [SPACE] for Next Sector.";
             }
@@ -313,7 +348,7 @@ namespace NebulaRelay.Core
             if (relayStation != null && (relayStation.State == RelayState.ReadyForDroneActivation || relayStation.State == RelayState.EnergyDelivered))
             {
                 float safeSpeed = relayStation.MaxSafeSpeed;
-                return $"STEP 3: Approach Station Docking Bay at Safe Speed (≤ {safeSpeed:F1} m/s)";
+                return $"STEP 3: Approach Station Docking Bay at Safe Speed (≤ {safeSpeed:F1} u/s)";
             }
 
             return "RESTORE ORBITAL RELAY";
